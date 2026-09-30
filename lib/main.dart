@@ -174,7 +174,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       borderRadius: BorderRadius.circular(12),
                       side: BorderSide(color: Colors.blue.shade100),
                     ),
-                    color: Colors.blue.shade50.withOpacity(0.4),
+                    color: Colors.blue.shade50.withValues(alpha: 0.2),
                     child: Padding(
                       padding: const EdgeInsets.all(14.0),
                       child: Column(
