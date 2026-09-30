@@ -1,0 +1,13 @@
+{
+  "student": {
+    "nim": "2415051004",
+    "name": "Kadek Martini Aristianti"
+  },
+  "courses": [
+    {"code": "TIKS01", "title": "MICROTEACHING", "credits": 2, "status": "done"},
+    {"code": "TIKS02", "title": "METOPEN", "credits": 2, "status": "done"},
+    {"code": "TIKS03", "title": "PEMOB", "credits": 3, "status": "active"},
+    {"code": "SOS04", "title": "LITERASI HUMANISTIK", "credits": 3, "status": "planned"},
+    {"code": "EK05", "title": "LITERASI KEUANGAN", "credits": 2, "status": "planned"}
+  ]
+}
