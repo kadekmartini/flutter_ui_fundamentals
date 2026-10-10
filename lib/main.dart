@@ -38,7 +38,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// Fungsi helper global untuk menyamakan teks status
 String getStatusText(String status) {
   if (status == 'done') return 'Selesai';
   if (status == 'active') return 'Berjalan';
@@ -385,7 +384,7 @@ class _HomeTabState extends State<HomeTab> {
 }
 
 // ==========================================
-// TAB 2: CoursesTab (PARENT)
+// TAB 2: CoursesTab
 // ==========================================
 class CoursesTab extends StatefulWidget {
   const CoursesTab({super.key});
@@ -397,9 +396,11 @@ class CoursesTab extends StatefulWidget {
 class _CoursesTabState extends State<CoursesTab> {
   late Future<Map<String, dynamic>> studentFuture;
 
-  // TAHAP 3: Lifting State Up - Parent menyimpan daftar semua course yang difavoritkan
-  // Single Source of Truth
+  // TAHAP 3: Single Source of Truth
   final Set<String> _favoriteCourses = {};
+
+  // TAHAP 4: (Poin 18) Buat ValueNotifier untuk jumlah favorite (nilai sederhana)
+  final ValueNotifier<int> favoriteCountNotifier = ValueNotifier<int>(0);
 
   Future<Map<String, dynamic>> loadStudentData() async {
     final String jsonString = await rootBundle.loadString('assets/data/student_data.json');
@@ -410,6 +411,13 @@ class _CoursesTabState extends State<CoursesTab> {
   void initState() {
     super.initState();
     studentFuture = loadStudentData();
+  }
+
+  @override
+  void dispose() {
+    // TAHAP 4: Wajib membuang/dispose notifier untuk menghindari memory leak
+    favoriteCountNotifier.dispose();
+    super.dispose();
   }
 
   int columnsFor(double width) {
@@ -440,13 +448,66 @@ class _CoursesTabState extends State<CoursesTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 12.0, left: 4),
-                  child: Text(
-                    'Pilih materi untuk melihat detail:',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(left: 4),
+                      child: Text(
+                        'Daftar Modul:',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
+                      ),
+                    ),
+                    
+                    // TAHAP 4: (Poin 20) Tambahkan button yang mengubah value (tombol reset favorit)
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _favoriteCourses.clear(); // Bersihkan set 
+                        });
+                        // Ubah value notifier secara mandiri (tanpa setState untuk widget ini)
+                        favoriteCountNotifier.value = 0; 
+                        
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Semua favorit di-reset!'), duration: Duration(seconds: 1)),
+                        );
+                      },
+                      icon: const Icon(Icons.delete_outline, size: 16),
+                      label: const Text('Reset', style: TextStyle(fontSize: 13)),
+                      style: TextButton.styleFrom(foregroundColor: Colors.red.shade400),
+                    ),
+                  ],
+                ),
+                
+                // TAHAP 4: (Poin 19) Tampilkan nilai dengan ValueListenableBuilder
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0, left: 4),
+                  child: ValueListenableBuilder<int>(
+                    valueListenable: favoriteCountNotifier,
+                    builder: (context, count, child) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.red.shade200),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.favorite, color: Colors.red.shade500, size: 16),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Total Materi Favorit: $count',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.red.shade700),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ),
+                
                 Expanded(
                   child: LayoutBuilder(
                     builder: (context, constraints) {
@@ -461,15 +522,13 @@ class _CoursesTabState extends State<CoursesTab> {
                         itemBuilder: (context, index) {
                           final courseData = courses[index] as Map<String, dynamic>;
                           final courseTitle = courseData['title'] as String? ?? 'Unknown';
-                          
-                          // TAHAP 3: Cek apakah materi ini ada di dalam set favorit
                           final isFav = _favoriteCourses.contains(courseTitle);
 
                           return InteractiveCourseCard(
                             course: courseData,
-                            isFavorite: isFav, // Kirim state ke child
+                            isFavorite: isFav,
                             onFavoriteChanged: (bool newValue) {
-                              // TAHAP 3: Terima aksi dari child melalui callback
+                              // Mengubah Local State Daftar
                               setState(() {
                                 if (newValue) {
                                   _favoriteCourses.add(courseTitle);
@@ -477,6 +536,9 @@ class _CoursesTabState extends State<CoursesTab> {
                                   _favoriteCourses.remove(courseTitle);
                                 }
                               });
+                              
+                              // TAHAP 4: Ubah state notifier (yang akan men-trigger ValueListenableBuilder di atas)
+                              favoriteCountNotifier.value = _favoriteCourses.length;
                             },
                           );
                         },
@@ -496,7 +558,6 @@ class _CoursesTabState extends State<CoursesTab> {
 // ==========================================
 // TAHAP 3: Interactive CourseCard (CHILD - Stateless)
 // ==========================================
-// Class diubah menjadi StatelessWidget karena tidak lagi memiliki state mandiri
 class InteractiveCourseCard extends StatelessWidget {
   final Map<String, dynamic> course;
   final bool isFavorite;
@@ -584,22 +645,7 @@ class InteractiveCourseCard extends StatelessWidget {
                   size: 26,
                 ),
                 onPressed: () {
-                  // TAHAP 3: Kirim aksi kembali ke Parent
                   onFavoriteChanged(!isFavorite);
-                  
-                  ScaffoldMessenger.of(context).clearSnackBars();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        !isFavorite
-                            ? '${course['title']} ditambahkan ke Favorit'
-                            : '${course['title']} dihapus dari Favorit',
-                      ),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      duration: const Duration(seconds: 1),
-                    ),
-                  );
                 },
               ),
             ],
