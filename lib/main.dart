@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 
-// ==========================================
-// TAHAP 0: Identitas Mahasiswa
-// ==========================================
+// Menambahkan identitas dan setup tahap 0
 const String studentName = 'Kadek Martini Aristianti';
 const String studentId = '2415051004';
 
