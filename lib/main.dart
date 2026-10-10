@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 
-// Menambahkan identitas dan setup tahap 0
+// ==========================================
+// TAHAP 0: Identitas Mahasiswa
+// ==========================================
 const String studentName = 'Kadek Martini Aristianti';
 const String studentId = '2415051004';
 
@@ -15,14 +17,28 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: MainScreen(),
+      title: 'Course Explorer',
+      theme: ThemeData(
+        useMaterial3: true,
+        colorSchemeSeed: Colors.blue,
+        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black87,
+          elevation: 0.5,
+          shadowColor: Colors.black12,
+          centerTitle: true,
+          surfaceTintColor: Colors.transparent,
+        ),
+      ),
+      home: const MainScreen(),
     );
   }
 }
 
-// Fungsi helper global untuk menyamakan teks status (Sinkron)
+// Fungsi helper global untuk menyamakan teks status
 String getStatusText(String status) {
   if (status == 'done') return 'Selesai';
   if (status == 'active') return 'Berjalan';
@@ -30,13 +46,13 @@ String getStatusText(String status) {
 }
 
 Color getStatusColor(String status) {
-  if (status == 'done') return Colors.green;
-  if (status == 'active') return Colors.orange;
-  return Colors.grey;
+  if (status == 'done') return Colors.green.shade600;
+  if (status == 'active') return Colors.orange.shade700;
+  return Colors.grey.shade600;
 }
 
 // ==========================================
-// TAHAP 11 - 15: MainScreen Adaptive Navigation
+// MainScreen Adaptive Navigation
 // ==========================================
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -46,78 +62,62 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
+  // TAHAP 1: Contoh Local State (_selectedIndex)
   int _selectedIndex = 0;
 
-  final List<Widget> _pages = [
-    const HomeTab(),
-    const CoursesTab(),
-    const ProfileTab(),
+  final List<Widget> _pages = const [
+    HomeTab(),
+    CoursesTab(),
+    ProfileTab(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Breakpoint < 840 px: Gunakan NavigationBar di bawah
         if (constraints.maxWidth < 840) {
           return Scaffold(
             body: _pages[_selectedIndex],
             bottomNavigationBar: NavigationBar(
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
               selectedIndex: _selectedIndex,
               onDestinationSelected: (index) {
+                // TAHAP 1: Menggunakan setState untuk mengubah tab
                 setState(() {
                   _selectedIndex = index;
                 });
               },
               destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.home),
-                  label: 'Home',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.school),
-                  label: 'Courses',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.person),
-                  label: 'Profile',
-                ),
+                NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home, color: Colors.blue), label: 'Home'),
+                NavigationDestination(icon: Icon(Icons.school_outlined), selectedIcon: Icon(Icons.school, color: Colors.blue), label: 'Courses'),
+                NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person, color: Colors.blue), label: 'Profile'),
               ],
             ),
           );
-        } 
+        }
         
-        // Breakpoint >= 840 px: Gunakan NavigationRail di sebelah kiri
         return Scaffold(
           body: Row(
             children: [
               NavigationRail(
+                backgroundColor: Colors.white,
                 selectedIndex: _selectedIndex,
                 onDestinationSelected: (index) {
+                  // TAHAP 1: Menggunakan setState untuk mengubah tab
                   setState(() {
                     _selectedIndex = index;
                   });
                 },
                 labelType: NavigationRailLabelType.all,
                 destinations: const [
-                  NavigationRailDestination(
-                    icon: Icon(Icons.home),
-                    label: Text('Home'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.school),
-                    label: Text('Courses'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.person),
-                    label: Text('Profile'),
-                  ),
+                  NavigationRailDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home, color: Colors.blue), label: Text('Home')),
+                  NavigationRailDestination(icon: Icon(Icons.school_outlined), selectedIcon: Icon(Icons.school, color: Colors.blue), label: Text('Courses')),
+                  NavigationRailDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person, color: Colors.blue), label: Text('Profile')),
                 ],
               ),
-              const VerticalDivider(thickness: 1, width: 1),
-              Expanded(
-                child: _pages[_selectedIndex],
-              ),
+              const VerticalDivider(thickness: 1, width: 1, color: Colors.black12),
+              Expanded(child: _pages[_selectedIndex]),
             ],
           ),
         );
@@ -138,11 +138,9 @@ class HomeTab extends StatefulWidget {
 
 class _HomeTabState extends State<HomeTab> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  
   late final TextEditingController _nameController;
   late final TextEditingController _nimController;
   final TextEditingController _commentController = TextEditingController();
-  
   bool _isLoading = false;
 
   @override
@@ -165,15 +163,16 @@ class _HomeTabState extends State<HomeTab> {
       bool? confirm = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Konfirmasi'),
-          content: const Text('Apakah Anda yakin ingin mengirim feedback ini?'),
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          title: const Text('Konfirmasi', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: const Text('Kirim masukan atau feedback ini sekarang?'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Batal'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal', style: TextStyle(color: Colors.grey))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade700, foregroundColor: Colors.white),
+              onPressed: () => Navigator.pop(context, true), 
               child: const Text('Kirim'),
             ),
           ],
@@ -181,200 +180,206 @@ class _HomeTabState extends State<HomeTab> {
       );
 
       if (confirm == true && mounted) {
-        setState(() {
-          _isLoading = true;
-        });
-
+        setState(() => _isLoading = true);
         await Future.delayed(const Duration(seconds: 2));
-
         if (!mounted) return;
-
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Data berhasil disimpan dan dikirim!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Text('Feedback berhasil dikirim!'),
+              ],
+            ),
+            backgroundColor: Colors.green.shade600,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       }
     }
   }
 
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12, top: 24),
+      child: Text(
+        title,
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blue.shade700,
-        elevation: 0,
-        title: const Text(
-          'Course Explorer',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
+        title: const Text('Dashboard Utama', style: TextStyle(fontWeight: FontWeight.w700)),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               LayoutBuilder(
                 builder: (context, constraints) {
-                  if (constraints.maxWidth < 600) {
-                    return const CompactLayout();
-                  } else if (constraints.maxWidth < 840) {
-                    return const MediumLayout();
-                  } else {
-                    return const ExpandedLayout();
-                  }
+                  if (constraints.maxWidth < 600) return const CompactLayout();
+                  if (constraints.maxWidth < 840) return const MediumLayout();
+                  return const ExpandedLayout();
                 },
               ),
-              const SizedBox(height: 16),
-              const Text(
-                'Expanded & Wrap',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87),
-              ),
-              const SizedBox(height: 8),
+              
+              _buildSectionTitle('Informasi Pengguna'),
               Row(
                 children: [
                   Expanded(
                     flex: 2,
                     child: Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.blue.shade200),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade200),
+                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Panel 1 (Flex: 2)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                          const SizedBox(height: 4),
-                          Text('$studentId\n$studentName', style: const TextStyle(fontSize: 11)),
+                          Row(
+                            children: [
+                              Icon(Icons.person_pin, size: 18, color: Colors.blue.shade600),
+                              const SizedBox(width: 6),
+                              Text('Profil Singkat', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue.shade700, fontSize: 13)),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(studentName, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87)),
+                          const SizedBox(height: 2),
+                          Text('NIM: $studentId', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                   Expanded(
                     flex: 1,
                     child: Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.purple.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.purple.shade200),
+                        gradient: LinearGradient(
+                          colors: [Colors.blue.shade600, Colors.blue.shade400],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [BoxShadow(color: Colors.blue.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 3))],
                       ),
-                      child: Column(
+                      child: const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text('Panel 2 (Flex: 1)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        children: [
+                          Text('Semester', style: TextStyle(fontWeight: FontWeight.w500, color: Colors.white70, fontSize: 12)),
                           SizedBox(height: 4),
-                          Text('Flexible Space', style: TextStyle(fontSize: 11)),
+                          Text('5', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white, height: 1.1)),
                         ],
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              const Text(
-                'Keahlian & Teknologi (Wrap):',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87),
-              ),
-              const SizedBox(height: 6),
+              
+              _buildSectionTitle('Fokus Pembelajaran'),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: const [
-                  Chip(label: Text('Flutter')),
-                  Chip(label: Text('Dart')),
-                  Chip(label: Text('Laravel')),
-                  Chip(label: Text('Git & GitHub')),
-                  Chip(label: Text('Networking')),
-                  Chip(label: Text('UI/UX Design')),
-                ],
+                // Mengubah <Widget> menjadi <String> agar tidak error cast
+                children: <String>[
+                  'Flutter', 'Dart', 'Laravel', 'Git & GitHub', 'Networking', 'UI/UX Design'
+                ].map<Widget>((String skill) => Chip(
+                  label: Text(skill, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87)),
+                  backgroundColor: Colors.white,
+                  side: BorderSide(color: Colors.grey.shade200),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                )).toList(),
               ),
-              const SizedBox(height: 24),
-              const Text(
-                'Form Feedback & Feedback UI',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
-              ),
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextFormField(
-                        controller: _nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Nama',
-                          border: OutlineInputBorder(),
+              
+              _buildSectionTitle('Kirim Feedback & Masukan'),
+              Card(
+                color: Colors.white,
+                elevation: 1.5,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        TextFormField(
+                          controller: _nameController,
+                          decoration: InputDecoration(
+                            labelText: 'Nama Lengkap',
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.blue)),
+                          ),
+                          validator: (value) => value == null || value.trim().isEmpty ? 'Nama wajib diisi' : null,
                         ),
-                        validator: (value) => value == null || value.trim().isEmpty ? 'Nama wajib diisi' : null,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _nimController,
-                        decoration: const InputDecoration(
-                          labelText: 'NIM',
-                          border: OutlineInputBorder(),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _nimController,
+                          decoration: InputDecoration(
+                            labelText: 'NIM',
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.blue)),
+                          ),
+                          validator: (value) => value == null || value.trim().isEmpty ? 'NIM wajib diisi' : null,
                         ),
-                        validator: (value) => value == null || value.trim().isEmpty ? 'NIM wajib diisi' : null,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _commentController,
-                        decoration: const InputDecoration(
-                          labelText: 'Komentar (Minimal 5 karakter)',
-                          border: OutlineInputBorder(),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _commentController,
+                          maxLines: 3,
+                          decoration: InputDecoration(
+                            labelText: 'Komentar atau Pesan',
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.blue)),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) return 'Komentar wajib diisi';
+                            if (value.trim().length < 5) return 'Minimal 5 karakter';
+                            return null;
+                          },
                         ),
-                        maxLines: 3,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) return 'Komentar wajib diisi';
-                          if (value.trim().length < 5) return 'Komentar minimal 5 karakter';
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _isLoading ? null : _submitForm,
-                          icon: _isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                                )
-                              : const Icon(Icons.send),
-                          label: Text(_isLoading ? 'Memproses...' : 'Kirim Feedback'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue.shade700,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton.icon(
+                            onPressed: _isLoading ? null : _submitForm,
+                            icon: _isLoading 
+                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                : const Icon(Icons.send_rounded),
+                            label: Text(_isLoading ? 'Memproses...' : 'Kirim Sekarang', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue.shade700,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
+              const SizedBox(height: 40),
             ],
           ),
         ),
@@ -416,14 +421,7 @@ class _CoursesTabState extends State<CoursesTab> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.blue.shade700,
-        elevation: 0,
-        title: const Text(
-          'Course Explorer',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-      ),
+      appBar: AppBar(title: const Text('Daftar Materi', style: TextStyle(fontWeight: FontWeight.w700))),
       body: FutureBuilder<Map<String, dynamic>>(
         future: studentFuture,
         builder: (context, snapshot) {
@@ -435,31 +433,33 @@ class _CoursesTabState extends State<CoursesTab> {
           }
 
           final data = snapshot.data!;
-          final List courses = data['courses'];
+          final List<dynamic> courses = data['courses'] as List<dynamic>? ?? [];
 
           return Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Daftar Materi (Ketuk untuk Detail, Tahan untuk Info)',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 12.0, left: 4),
+                  child: Text(
+                    'Pilih materi untuk melihat detail:',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
+                  ),
                 ),
-                const SizedBox(height: 12),
                 Expanded(
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       return GridView.builder(
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: columnsFor(constraints.maxWidth),
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 2.8,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: constraints.maxWidth < 600 ? 2.8 : 2.2, 
                         ),
                         itemCount: courses.length,
                         itemBuilder: (context, index) {
-                          return InteractiveCourseCard(course: courses[index]);
+                          return InteractiveCourseCard(course: courses[index] as Map<String, dynamic>);
                         },
                       );
                     },
@@ -475,11 +475,10 @@ class _CoursesTabState extends State<CoursesTab> {
 }
 
 // ==========================================
-// TAHAP 12: Interactive CourseCard
+// TAHAP 1: Interactive CourseCard (Local State)
 // ==========================================
 class InteractiveCourseCard extends StatefulWidget {
   final Map<String, dynamic> course;
-
   const InteractiveCourseCard({super.key, required this.course});
 
   @override
@@ -487,23 +486,21 @@ class InteractiveCourseCard extends StatefulWidget {
 }
 
 class _InteractiveCourseCardState extends State<InteractiveCourseCard> {
+  // TAHAP 1: Deklarasi Local State untuk fungsi Favorite
   bool isFavorite = false;
 
   @override
   Widget build(BuildContext context) {
-    final String status = widget.course['status'];
+    final String status = widget.course['status'] ?? 'unknown';
     final String statusText = getStatusText(status);
     final Color statusColor = getStatusColor(status);
 
     return Card(
-      margin: EdgeInsets.zero,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade300),
-      ),
+      color: Colors.white,
+      elevation: 1.5,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap: () async {
           final result = await Navigator.push<bool>(
             context,
@@ -511,46 +508,45 @@ class _InteractiveCourseCardState extends State<InteractiveCourseCard> {
               builder: (context) => CourseDetailPage(course: widget.course),
             ),
           );
-
           if (!context.mounted) return;
-
           if (result == true) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Materi berhasil dipilih / difavoritkan!'),
-                duration: Duration(seconds: 2),
+              SnackBar(
+                content: const Text('Materi berhasil dipilih!'),
+                backgroundColor: Colors.green.shade600,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                duration: const Duration(seconds: 2),
               ),
             );
           }
         },
-        onLongPress: () {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: Text(widget.course['title']),
-              content: Text('Status: $statusText\nMahasiswa: $studentId - $studentName'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Tutup'),
-                ),
-              ],
-            ),
-          );
-        },
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
           child: Row(
             children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  status == 'done' ? Icons.check_circle : (status == 'active' ? Icons.play_circle : Icons.schedule),
+                  color: statusColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      widget.course['title'],
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
-                      maxLines: 1,
+                      widget.course['title'] ?? 'Materi Tidak Diketahui',
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87),
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
@@ -564,19 +560,25 @@ class _InteractiveCourseCardState extends State<InteractiveCourseCard> {
               IconButton(
                 icon: Icon(
                   isFavorite ? Icons.favorite : Icons.favorite_border,
-                  color: isFavorite ? Colors.red : Colors.grey,
+                  color: isFavorite ? Colors.red : Colors.grey.shade400,
+                  size: 26,
                 ),
                 onPressed: () {
+                  // TAHAP 1: Mengubah Local State isFavorite menggunakan setState
                   setState(() {
                     isFavorite = !isFavorite;
                   });
+                  
+                  ScaffoldMessenger.of(context).clearSnackBars();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
                         isFavorite
-                            ? '${widget.course['title']} ditandai sebagai Favorit'
+                            ? '${widget.course['title']} ditambahkan ke Favorit'
                             : '${widget.course['title']} dihapus dari Favorit',
                       ),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       duration: const Duration(seconds: 1),
                     ),
                   );
@@ -599,51 +601,72 @@ class ProfileTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.blue.shade700,
-        elevation: 0,
-        title: const Text(
-          'Course Explorer',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      appBar: AppBar(title: const Text('Profil Saya', style: TextStyle(fontWeight: FontWeight.w700))),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 20),
-            const CircleAvatar(
-              radius: 45,
-              backgroundImage: AssetImage('assets/images/profile.jpeg'),
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.blue.shade100, width: 4),
+              ),
+              child: const CircleAvatar(
+                radius: 55,
+                backgroundColor: Color(0xFFE3F2FD),
+                backgroundImage: AssetImage('assets/images/profile.jpeg'),
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             const Text(
               studentName,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.black87),
+              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 6),
-            Text(
-              'NIM: $studentId',
-              style: TextStyle(fontSize: 15, color: Colors.grey.shade700),
-            ),
-            const SizedBox(height: 24),
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.grey.shade300),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(20),
               ),
+              child: Text(
+                'NIM: $studentId',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blue.shade700),
+              ),
+            ),
+            const SizedBox(height: 40),
+            
+            Card(
+              color: Colors.white,
+              elevation: 1.5,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(8.0),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: const [
-                    Text('Program Studi:', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                    Text('Pendidikan Teknik Informatika', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 12),
-                    Text('Universitas:', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                    Text('Universitas Pendidikan Ganesha', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  children: [
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(color: Colors.blue.shade50, shape: BoxShape.circle),
+                        child: Icon(Icons.school, color: Colors.blue.shade700, size: 22),
+                      ),
+                      title: const Text('Program Studi', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      subtitle: const Text('Pendidikan Teknik Informatika', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    ),
+                    const Divider(height: 1, indent: 70, endIndent: 20, color: Colors.black12),
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(color: Colors.green.shade50, shape: BoxShape.circle),
+                        child: Icon(Icons.account_balance, color: Colors.green.shade700, size: 22),
+                      ),
+                      title: const Text('Universitas', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      subtitle: const Text('Universitas Pendidikan Ganesha', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    ),
                   ],
                 ),
               ),
@@ -660,84 +683,71 @@ class ProfileTab extends StatelessWidget {
 // ==========================================
 class CourseDetailPage extends StatelessWidget {
   final Map<String, dynamic> course;
-
   const CourseDetailPage({super.key, required this.course});
 
   @override
   Widget build(BuildContext context) {
-    final String rawStatus = course['status'];
+    final String rawStatus = course['status'] ?? 'unknown';
     final String statusText = getStatusText(rawStatus);
     final Color statusColor = getStatusColor(rawStatus);
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blue.shade700,
-        elevation: 0,
-        title: Text(
-          course['title'],
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
+        title: const Text('Detail Materi', style: TextStyle(fontWeight: FontWeight.w700)),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Detail Informasi Materi',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
-            ),
-            const SizedBox(height: 12),
             Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.grey.shade300),
-              ),
+              color: Colors.white,
+              elevation: 1.5,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(24.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Judul Materi:', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                    Text(course['title'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 10),
-                    const Text('Status:', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                    Text(statusText, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: statusColor)),
-                    const SizedBox(height: 10),
-                    const Text('Mahasiswa:', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                    const Text('$studentId - $studentName', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    const Text('Judul Materi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                    const SizedBox(height: 6),
+                    Text(course['title'] ?? 'Tidak diketahui', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.black87)),
+                    
+                    const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Divider(color: Colors.black12)),
+                    
+                    const Text('Status Pembelajaran', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(rawStatus == 'done' ? Icons.check_circle : Icons.pending, color: statusColor, size: 20),
+                          const SizedBox(width: 8),
+                          Text(statusText, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: statusColor)),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
             SizedBox(
               width: double.infinity,
+              height: 52,
               child: ElevatedButton.icon(
                 onPressed: () => Navigator.pop(context, true),
-                icon: const Icon(Icons.favorite),
-                label: const Text('Pilih / Favorite'),
+                icon: const Icon(Icons.favorite_rounded),
+                label: const Text('Tandai Selesai / Favorit', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade600,
+                  backgroundColor: Colors.blue.shade700,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('Kembali'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey.shade600,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
               ),
             ),
@@ -749,28 +759,25 @@ class CourseDetailPage extends StatelessWidget {
 }
 
 // ==========================================
-// WIDGET LAYOUT BREAKPOINT
+// WIDGET LAYOUT BREAKPOINT (Home Tab Info)
 // ==========================================
 class CompactLayout extends StatelessWidget {
   const CompactLayout({super.key});
-
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       decoration: BoxDecoration(
-        color: Colors.red.shade50,
+        color: Colors.blue.shade50,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red.shade200),
+        border: Border.all(color: Colors.blue.shade100),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          const Text('Kategori: Compact (< 600 px)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 14)),
-          const Divider(height: 12),
-          Text('NIM: $studentId', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-          Text('Nama: $studentName', style: const TextStyle(fontSize: 13)),
+          Icon(Icons.phone_android, color: Colors.blue.shade600, size: 20),
+          const SizedBox(width: 12),
+          Text('Tampilan Layar HP (Compact)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue.shade700, fontSize: 13)),
         ],
       ),
     );
@@ -779,24 +786,21 @@ class CompactLayout extends StatelessWidget {
 
 class MediumLayout extends StatelessWidget {
   const MediumLayout({super.key});
-
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       decoration: BoxDecoration(
-        color: Colors.orange.shade50,
+        color: Colors.purple.shade50,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.orange.shade200),
+        border: Border.all(color: Colors.purple.shade100),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          const Text('Kategori: Medium (600 - 839 px)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange, fontSize: 14)),
-          const Divider(height: 12),
-          Text('NIM: $studentId', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-          Text('Nama: $studentName', style: const TextStyle(fontSize: 13)),
+          Icon(Icons.tablet_mac, color: Colors.purple.shade600, size: 20),
+          const SizedBox(width: 12),
+          Text('Tampilan Layar Tablet (Medium)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.purple.shade700, fontSize: 13)),
         ],
       ),
     );
@@ -805,24 +809,21 @@ class MediumLayout extends StatelessWidget {
 
 class ExpandedLayout extends StatelessWidget {
   const ExpandedLayout({super.key});
-
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       decoration: BoxDecoration(
-        color: Colors.green.shade50,
+        color: Colors.teal.shade50,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.green.shade200),
+        border: Border.all(color: Colors.teal.shade100),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          const Text('Kategori: Expanded (>= 840 px)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green, fontSize: 14)),
-          const Divider(height: 12),
-          Text('NIM: $studentId', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-          Text('Nama: $studentName', style: const TextStyle(fontSize: 13)),
+          Icon(Icons.desktop_windows, color: Colors.teal.shade600, size: 20),
+          const SizedBox(width: 12),
+          Text('Tampilan Desktop / Web (Expanded)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal.shade700, fontSize: 13)),
         ],
       ),
     );
