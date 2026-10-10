@@ -62,7 +62,6 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  // TAHAP 1: Contoh Local State (_selectedIndex)
   int _selectedIndex = 0;
 
   final List<Widget> _pages = const [
@@ -83,7 +82,6 @@ class _MainScreenState extends State<MainScreen> {
               surfaceTintColor: Colors.transparent,
               selectedIndex: _selectedIndex,
               onDestinationSelected: (index) {
-                // TAHAP 1: Menggunakan setState untuk mengubah tab
                 setState(() {
                   _selectedIndex = index;
                 });
@@ -104,7 +102,6 @@ class _MainScreenState extends State<MainScreen> {
                 backgroundColor: Colors.white,
                 selectedIndex: _selectedIndex,
                 onDestinationSelected: (index) {
-                  // TAHAP 1: Menggunakan setState untuk mengubah tab
                   setState(() {
                     _selectedIndex = index;
                   });
@@ -388,7 +385,7 @@ class _HomeTabState extends State<HomeTab> {
 }
 
 // ==========================================
-// TAB 2: CoursesTab
+// TAB 2: CoursesTab (PARENT)
 // ==========================================
 class CoursesTab extends StatefulWidget {
   const CoursesTab({super.key});
@@ -399,6 +396,10 @@ class CoursesTab extends StatefulWidget {
 
 class _CoursesTabState extends State<CoursesTab> {
   late Future<Map<String, dynamic>> studentFuture;
+
+  // TAHAP 3: Lifting State Up - Parent menyimpan daftar semua course yang difavoritkan
+  // Single Source of Truth
+  final Set<String> _favoriteCourses = {};
 
   Future<Map<String, dynamic>> loadStudentData() async {
     final String jsonString = await rootBundle.loadString('assets/data/student_data.json');
@@ -458,8 +459,26 @@ class _CoursesTabState extends State<CoursesTab> {
                         ),
                         itemCount: courses.length,
                         itemBuilder: (context, index) {
-                          // TAHAP 2: Eksperimen Prop Drilling (mengoper data dari Parent ke Child melalui constructor)
-                          return InteractiveCourseCard(course: courses[index] as Map<String, dynamic>);
+                          final courseData = courses[index] as Map<String, dynamic>;
+                          final courseTitle = courseData['title'] as String? ?? 'Unknown';
+                          
+                          // TAHAP 3: Cek apakah materi ini ada di dalam set favorit
+                          final isFav = _favoriteCourses.contains(courseTitle);
+
+                          return InteractiveCourseCard(
+                            course: courseData,
+                            isFavorite: isFav, // Kirim state ke child
+                            onFavoriteChanged: (bool newValue) {
+                              // TAHAP 3: Terima aksi dari child melalui callback
+                              setState(() {
+                                if (newValue) {
+                                  _favoriteCourses.add(courseTitle);
+                                } else {
+                                  _favoriteCourses.remove(courseTitle);
+                                }
+                              });
+                            },
+                          );
                         },
                       );
                     },
@@ -475,23 +494,24 @@ class _CoursesTabState extends State<CoursesTab> {
 }
 
 // ==========================================
-// TAHAP 1: Interactive CourseCard (Local State)
+// TAHAP 3: Interactive CourseCard (CHILD - Stateless)
 // ==========================================
-class InteractiveCourseCard extends StatefulWidget {
+// Class diubah menjadi StatelessWidget karena tidak lagi memiliki state mandiri
+class InteractiveCourseCard extends StatelessWidget {
   final Map<String, dynamic> course;
-  const InteractiveCourseCard({super.key, required this.course});
+  final bool isFavorite;
+  final ValueChanged<bool> onFavoriteChanged;
 
-  @override
-  State<InteractiveCourseCard> createState() => _InteractiveCourseCardState();
-}
-
-class _InteractiveCourseCardState extends State<InteractiveCourseCard> {
-  // TAHAP 1: Deklarasi Local State untuk fungsi Favorite
-  bool isFavorite = false;
+  const InteractiveCourseCard({
+    super.key,
+    required this.course,
+    required this.isFavorite,
+    required this.onFavoriteChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final String status = widget.course['status'] ?? 'unknown';
+    final String status = course['status'] ?? 'unknown';
     final String statusText = getStatusText(status);
     final Color statusColor = getStatusColor(status);
 
@@ -505,7 +525,7 @@ class _InteractiveCourseCardState extends State<InteractiveCourseCard> {
           final result = await Navigator.push<bool>(
             context,
             MaterialPageRoute(
-              builder: (context) => CourseDetailPage(course: widget.course),
+              builder: (context) => CourseDetailPage(course: course),
             ),
           );
           if (!context.mounted) return;
@@ -544,7 +564,7 @@ class _InteractiveCourseCardState extends State<InteractiveCourseCard> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      widget.course['title'] ?? 'Materi Tidak Diketahui',
+                      course['title'] ?? 'Materi Tidak Diketahui',
                       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -564,18 +584,16 @@ class _InteractiveCourseCardState extends State<InteractiveCourseCard> {
                   size: 26,
                 ),
                 onPressed: () {
-                  // TAHAP 1: Mengubah Local State isFavorite menggunakan setState
-                  setState(() {
-                    isFavorite = !isFavorite;
-                  });
+                  // TAHAP 3: Kirim aksi kembali ke Parent
+                  onFavoriteChanged(!isFavorite);
                   
                   ScaffoldMessenger.of(context).clearSnackBars();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        isFavorite
-                            ? '${widget.course['title']} ditambahkan ke Favorit'
-                            : '${widget.course['title']} dihapus dari Favorit',
+                        !isFavorite
+                            ? '${course['title']} ditambahkan ke Favorit'
+                            : '${course['title']} dihapus dari Favorit',
                       ),
                       behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
