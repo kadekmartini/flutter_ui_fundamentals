@@ -295,7 +295,6 @@ class _HomeTabState extends State<HomeTab> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                // Mengubah <Widget> menjadi <String> agar tidak error cast
                 children: <String>[
                   'Flutter', 'Dart', 'Laravel', 'Git & GitHub', 'Networking', 'UI/UX Design'
                 ].map<Widget>((String skill) => Chip(
@@ -459,6 +458,7 @@ class _CoursesTabState extends State<CoursesTab> {
                         ),
                         itemCount: courses.length,
                         itemBuilder: (context, index) {
+                          // TAHAP 2: Eksperimen Prop Drilling (mengoper data dari Parent ke Child melalui constructor)
                           return InteractiveCourseCard(course: courses[index] as Map<String, dynamic>);
                         },
                       );
