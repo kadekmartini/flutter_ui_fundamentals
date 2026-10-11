@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'package:flutter/services.dart' show rootBundle;
 // TAHAP 6: Import package provider
 import 'package:provider/provider.dart';
+
 // TAHAP 5: Import file state
 import 'course_state.dart';
 // TAHAP 8: Import file model
 import 'models/course.dart';
 // TAHAP 9: Import file service
 import 'services/course_service.dart';
+// TAHAP 10: Import file repository
+import 'repositories/course_repository.dart';
 
 // ==========================================
 // TAHAP 0: Identitas Mahasiswa
@@ -368,17 +369,17 @@ class CoursesTab extends StatefulWidget {
 }
 
 class _CoursesTabState extends State<CoursesTab> {
-  // TAHAP 8: Future sekarang mengembalikan List<Course>
+  // TAHAP 8: Future mengembalikan List<Course>
   late Future<List<Course>> coursesFuture;
   
-  // TAHAP 9: Gunakan instance CourseService
-  final CourseService _courseService = CourseService();
+  // TAHAP 10: Inisialisasi CourseRepository dengan menyuntikkan CourseService ke dalamnya
+  final CourseRepository _repository = CourseRepository(CourseService());
 
   @override
   void initState() {
     super.initState();
-    // TAHAP 9: Panggil method dari service (kode jsonDecode dipindah ke service)
-    coursesFuture = _courseService.loadCourses();
+    // TAHAP 10: Memanggil data melalui getCourses() dari Repository
+    coursesFuture = _repository.getCourses();
   }
 
   int columnsFor(double width) {
@@ -441,7 +442,7 @@ class _CoursesTabState extends State<CoursesTab> {
                         ),
                         itemCount: courses.length,
                         itemBuilder: (context, index) {
-                          // TAHAP 8: Mengirimkan Object Model Course, BUKAN Map
+                          // TAHAP 8: Mengirimkan Object Model Course
                           return InteractiveCourseCard(course: courses[index]);
                         },
                       );
