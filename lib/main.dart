@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
-
-// TAHAP 6: Import package provider dan file course_state.dart
 import 'package:provider/provider.dart';
 import 'course_state.dart';
 
@@ -13,7 +11,6 @@ const String studentName = 'Kadek Martini Aristianti';
 const String studentId = '2415051004';
 
 void main() {
-  // TAHAP 6: Membungkus aplikasi dengan ChangeNotifierProvider
   runApp(
     ChangeNotifierProvider(
       create: (context) => CourseState(),
@@ -71,7 +68,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _selectedIndex = 0;
+  int _selectedIndex = 1; // Default langsung buka tab Courses untuk mempermudah tes
 
   final List<Widget> _pages = const [
     HomeTab(),
@@ -405,12 +402,7 @@ class CoursesTab extends StatefulWidget {
 
 class _CoursesTabState extends State<CoursesTab> {
   late Future<Map<String, dynamic>> studentFuture;
-
-  // TAHAP 3: Single Source of Truth
-  final Set<String> _favoriteCourses = {};
-
-  // TAHAP 4: (Poin 18) Buat ValueNotifier untuk jumlah favorite (nilai sederhana)
-  final ValueNotifier<int> favoriteCountNotifier = ValueNotifier<int>(0);
+  // Local state favorite dan ValueNotifier DIHAPUS, kita murni pakai Provider sekarang!
 
   Future<Map<String, dynamic>> loadStudentData() async {
     final String jsonString = await rootBundle.loadString('assets/data/student_data.json');
@@ -423,13 +415,6 @@ class _CoursesTabState extends State<CoursesTab> {
     studentFuture = loadStudentData();
   }
 
-  @override
-  void dispose() {
-    // TAHAP 4: Wajib membuang/dispose notifier untuk menghindari memory leak
-    favoriteCountNotifier.dispose();
-    super.dispose();
-  }
-
   int columnsFor(double width) {
     if (width < 600) return 1;
     if (width < 840) return 2;
@@ -438,6 +423,10 @@ class _CoursesTabState extends State<CoursesTab> {
 
   @override
   Widget build(BuildContext context) {
+    // TAHAP 7 (Poin 30): Gunakan watch() untuk menampilkan jumlah favorite
+    // watch() mendengarkan perubahan dan akan memicu rebuild halaman ini jika jumlah favorit berubah
+    final int favoriteCount = context.watch<CourseState>().favorites.length;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Daftar Materi', style: TextStyle(fontWeight: FontWeight.w700))),
       body: FutureBuilder<Map<String, dynamic>>(
@@ -458,63 +447,35 @@ class _CoursesTabState extends State<CoursesTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.only(left: 4),
-                      child: Text(
-                        'Daftar Modul:',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
-                      ),
-                    ),
-                    
-                    // TAHAP 4: (Poin 20) Tambahkan button yang mengubah value (tombol reset favorit)
-                    TextButton.icon(
-                      onPressed: () {
-                        setState(() {
-                          _favoriteCourses.clear(); // Bersihkan set 
-                        });
-                        // Ubah value notifier secara mandiri (tanpa setState untuk widget ini)
-                        favoriteCountNotifier.value = 0; 
-                        
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Semua favorit di-reset!'), duration: Duration(seconds: 1)),
-                        );
-                      },
-                      icon: const Icon(Icons.delete_outline, size: 16),
-                      label: const Text('Reset', style: TextStyle(fontSize: 13)),
-                      style: TextButton.styleFrom(foregroundColor: Colors.red.shade400),
-                    ),
-                  ],
+                const Padding(
+                  padding: EdgeInsets.only(left: 4, bottom: 8),
+                  child: Text(
+                    'Daftar Modul:',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
+                  ),
                 ),
                 
-                // TAHAP 4: (Poin 19) Tampilkan nilai dengan ValueListenableBuilder
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12.0, left: 4),
-                  child: ValueListenableBuilder<int>(
-                    valueListenable: favoriteCountNotifier,
-                    builder: (context, count, child) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.red.shade50,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.red.shade200),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.red.shade200),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.favorite, color: Colors.red.shade500, size: 16),
+                        const SizedBox(width: 6),
+                        // Menampilkan hasil dari context.watch()
+                        Text(
+                          'Total Materi Favorit: $favoriteCount',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.red.shade700),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.favorite, color: Colors.red.shade500, size: 16),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Total Materi Favorit: $count',
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.red.shade700),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                      ],
+                    ),
                   ),
                 ),
                 
@@ -531,26 +492,10 @@ class _CoursesTabState extends State<CoursesTab> {
                         itemCount: courses.length,
                         itemBuilder: (context, index) {
                           final courseData = courses[index] as Map<String, dynamic>;
-                          final courseTitle = courseData['title'] as String? ?? 'Unknown';
-                          final isFav = _favoriteCourses.contains(courseTitle);
-
-                          return InteractiveCourseCard(
-                            course: courseData,
-                            isFavorite: isFav,
-                            onFavoriteChanged: (bool newValue) {
-                              // Mengubah Local State Daftar
-                              setState(() {
-                                if (newValue) {
-                                  _favoriteCourses.add(courseTitle);
-                                } else {
-                                  _favoriteCourses.remove(courseTitle);
-                                }
-                              });
-                              
-                              // TAHAP 4: Ubah state notifier (yang akan men-trigger ValueListenableBuilder di atas)
-                              favoriteCountNotifier.value = _favoriteCourses.length;
-                            },
-                          );
+                          
+                          // Pengiriman state parent-child dihapus
+                          // Child sekarang mengambil datanya sendiri ke Provider
+                          return InteractiveCourseCard(course: courseData);
                         },
                       );
                     },
@@ -566,25 +511,20 @@ class _CoursesTabState extends State<CoursesTab> {
 }
 
 // ==========================================
-// TAHAP 3: Interactive CourseCard (CHILD - Stateless)
+// Interactive CourseCard
 // ==========================================
 class InteractiveCourseCard extends StatelessWidget {
   final Map<String, dynamic> course;
-  final bool isFavorite;
-  final ValueChanged<bool> onFavoriteChanged;
-
-  const InteractiveCourseCard({
-    super.key,
-    required this.course,
-    required this.isFavorite,
-    required this.onFavoriteChanged,
-  });
+  
+  // Constructor menjadi sangat bersih tanpa prop drilling
+  const InteractiveCourseCard({super.key, required this.course});
 
   @override
   Widget build(BuildContext context) {
     final String status = course['status'] ?? 'unknown';
     final String statusText = getStatusText(status);
     final Color statusColor = getStatusColor(status);
+    final String courseTitle = course['title'] ?? 'Unknown';
 
     return Card(
       color: Colors.white,
@@ -635,7 +575,7 @@ class InteractiveCourseCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      course['title'] ?? 'Materi Tidak Diketahui',
+                      courseTitle,
                       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -648,14 +588,25 @@ class InteractiveCourseCard extends StatelessWidget {
                   ],
                 ),
               ),
-              IconButton(
-                icon: Icon(
-                  isFavorite ? Icons.favorite : Icons.favorite_border,
-                  color: isFavorite ? Colors.red : Colors.grey.shade400,
-                  size: 26,
-                ),
-                onPressed: () {
-                  onFavoriteChanged(!isFavorite);
+              
+              // TAHAP 7 (Poin 32): Gunakan Consumer pada satu bagian kecil UI
+              // Hanya area icon button ini yang akan di-rebuild ulang, bukan seluruh card
+              Consumer<CourseState>(
+                builder: (context, courseState, child) {
+                  final isFavorite = courseState.favorites.contains(courseTitle);
+                  
+                  return IconButton(
+                    icon: Icon(
+                      isFavorite ? Icons.favorite : Icons.favorite_border,
+                      color: isFavorite ? Colors.red : Colors.grey.shade400,
+                      size: 26,
+                    ),
+                    onPressed: () {
+                      // TAHAP 7 (Poin 31): Gunakan read() pada tombol toggle favorite
+                      // Mengambil object tanpa mendengarkan perubahannya (cocok untuk pemicu aksi)
+                      context.read<CourseState>().toggleFavorite(courseTitle);
+                    },
+                  );
                 },
               ),
             ],
