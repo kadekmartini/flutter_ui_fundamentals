@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/course.dart';
 import '../providers/course_state.dart';
-import '../screens/course_detail_page.dart'; // Akan kita buat setelah ini
-import '../main.dart'; // Untuk mengakses getStatusText dan getStatusColor
+import '../screens/course_detail_page.dart';
+import '../main.dart'; 
 
 class InteractiveCourseCard extends StatelessWidget {
   final Course course;
@@ -57,9 +57,11 @@ class InteractiveCourseCard extends StatelessWidget {
                   ],
                 ),
               ),
+              // TAHAP 7: Consumer
               Consumer<CourseState>(
                 builder: (context, courseState, child) {
-                  final isFavorite = courseState.favorites.contains(course.code);
+                  // TAHAP 13 (Poin 55): Menggunakan helper isFavorite yang baru dibuat
+                  final isFavorite = courseState.isFavorite(course.code);
                   
                   return IconButton(
                     icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, color: isFavorite ? Colors.red : Colors.grey.shade400, size: 26),

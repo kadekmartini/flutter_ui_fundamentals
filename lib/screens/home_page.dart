@@ -6,6 +6,8 @@ import '../providers/course_state.dart';
 import '../providers/course_provider.dart';
 import '../widgets/course_card.dart';
 import '../main.dart'; // Untuk mengakses konstanta nama dan fungsi helper
+// TAHAP 13: Import halaman favorites
+import 'favorites_page.dart';
 
 // ==========================================
 // MainScreen Adaptive Navigation
@@ -310,6 +312,7 @@ class CoursesTab extends StatefulWidget {
 }
 
 class _CoursesTabState extends State<CoursesTab> {
+
   int columnsFor(double width) {
     if (width < 600) return 1;
     if (width < 840) return 2;
@@ -321,7 +324,23 @@ class _CoursesTabState extends State<CoursesTab> {
     final int favoriteCount = context.watch<CourseState>().favorites.length;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Daftar Materi', style: TextStyle(fontWeight: FontWeight.w700))),
+      appBar: AppBar(
+        title: const Text('Daftar Materi', style: TextStyle(fontWeight: FontWeight.w700)),
+        actions: [
+          // TAHAP 13: Tambahkan tombol ini untuk membuka halaman FavoritesPage
+          IconButton(
+            icon: const Icon(Icons.favorite, color: Colors.red),
+            tooltip: 'Lihat Favorit',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const FavoritesPage()),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: Consumer<CourseProvider>(
         builder: (context, courseProvider, child) {
           if (courseProvider.isLoading) {

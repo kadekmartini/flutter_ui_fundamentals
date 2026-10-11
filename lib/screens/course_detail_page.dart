@@ -1,6 +1,9 @@
+// lib/screens/course_detail_page.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // TAHAP 13: Import provider
 import '../models/course.dart';
-import '../main.dart'; // Untuk mengakses getStatusText dan getStatusColor
+import '../providers/course_state.dart'; // TAHAP 13: Import state
+import '../main.dart'; 
 
 class CourseDetailPage extends StatelessWidget {
   final Course course;
@@ -13,7 +16,27 @@ class CourseDetailPage extends StatelessWidget {
     final Color statusColor = getStatusColor(rawStatus);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Detail Materi')),
+      appBar: AppBar(
+        title: const Text('Detail Materi'),
+        actions: [
+          // TAHAP 13 (Poin 56): Tampilkan status favorite pada DetailPage
+          Consumer<CourseState>(
+            builder: (context, courseState, child) {
+              final isFav = courseState.isFavorite(course.code);
+              return IconButton(
+                icon: Icon(
+                  isFav ? Icons.favorite : Icons.favorite_border,
+                  color: isFav ? Colors.red : Colors.grey,
+                ),
+                onPressed: () {
+                  courseState.toggleFavorite(course.code);
+                },
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
