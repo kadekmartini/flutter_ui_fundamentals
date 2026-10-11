@@ -51,7 +51,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Course Explorer',
       theme: ThemeData(
-        useMaterial3: true,
+        useMaterial3: true, 
         colorSchemeSeed: Colors.blue,
         scaffoldBackgroundColor: const Color(0xFFF8F9FA),
         appBarTheme: const AppBarTheme(
