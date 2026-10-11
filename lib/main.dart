@@ -10,6 +10,8 @@ import 'models/course.dart';
 import 'services/course_service.dart';
 // TAHAP 10: Import file repository
 import 'repositories/course_repository.dart';
+// TAHAP 11: Import file provider baru untuk mengelola state data (Poin 46)
+import 'providers/course_provider.dart';
 
 // ==========================================
 // TAHAP 0: Identitas Mahasiswa
@@ -18,10 +20,22 @@ const String studentName = 'Kadek Martini Aristianti';
 const String studentId = '2415051004';
 
 void main() {
-  // TAHAP 6: Membungkus aplikasi dengan ChangeNotifierProvider
+  // TAHAP 11: Mengubah ChangeNotifierProvider menjadi MultiProvider 
+  // karena sekarang ada dua state terpisah (CourseState & CourseProvider)
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => CourseState(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => CourseState()),
+        
+        // TAHAP 11: Mendaftarkan CourseProvider sebagai dependency
+        ChangeNotifierProvider(
+          create: (context) {
+            final service = CourseService();
+            final repository = CourseRepository(service);
+            return CourseProvider(repository)..loadCourses(); // Langsung memuat data saat awal berjalan
+          },
+        ),
+      ],
       child: const MyApp(),
     ),
   );
@@ -369,18 +383,9 @@ class CoursesTab extends StatefulWidget {
 }
 
 class _CoursesTabState extends State<CoursesTab> {
-  // TAHAP 8: Future mengembalikan List<Course>
-  late Future<List<Course>> coursesFuture;
-  
-  // TAHAP 10: Inisialisasi CourseRepository dengan menyuntikkan CourseService ke dalamnya
-  final CourseRepository _repository = CourseRepository(CourseService());
-
-  @override
-  void initState() {
-    super.initState();
-    // TAHAP 10: Memanggil data melalui getCourses() dari Repository
-    coursesFuture = _repository.getCourses();
-  }
+  // TAHAP 11: Kita TIDAK lagi menggunakan FutureBuilder, coursesFuture, 
+  // maupun initState() di dalam UI karena semuanya sudah dikelola otomatis
+  // oleh CourseProvider di root aplikasi.
 
   int columnsFor(double width) {
     if (width < 600) return 1;
@@ -395,17 +400,42 @@ class _CoursesTabState extends State<CoursesTab> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Daftar Materi', style: TextStyle(fontWeight: FontWeight.w700))),
-      // TAHAP 8: FutureBuilder memakai List<Course>
-      body: FutureBuilder<List<Course>>(
-        future: coursesFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      
+      // TAHAP 11 (Poin 47): Mengganti FutureBuilder dengan Consumer untuk CourseProvider
+      body: Consumer<CourseProvider>(
+        builder: (context, courseProvider, child) {
+          
+          // TAHAP 11 (Poin 48): Tampilkan loading indicator
+          if (courseProvider.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasError) {
-            return Center(child: Text('Gagal memuat data: ${snapshot.error}'));
+          
+          // TAHAP 11 (Poin 49): Tampilkan pesan error jika terjadi kegagalan
+          if (courseProvider.error != null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                  const SizedBox(height: 16),
+                  Text('Gagal memuat data: ${courseProvider.error}', textAlign: TextAlign.center),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => courseProvider.loadCourses(),
+                    child: const Text('Coba Lagi'),
+                  ),
+                ],
+              ),
+            );
           }
-          final List<Course> courses = snapshot.data ?? [];
+
+          // TAHAP 11 (Poin 50): Tampilkan list jika data berhasil dimuat
+          final List<Course> courses = courseProvider.courses;
+          
+          if (courses.isEmpty) {
+             return const Center(child: Text('Tidak ada materi yang tersedia.'));
+          }
+
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             child: Column(
