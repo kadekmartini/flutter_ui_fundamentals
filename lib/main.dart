@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 
+// TAHAP 6: Import package provider dan file course_state.dart
+import 'package:provider/provider.dart';
+import 'course_state.dart';
+
 // ==========================================
 // TAHAP 0: Identitas Mahasiswa
 // ==========================================
@@ -9,7 +13,13 @@ const String studentName = 'Kadek Martini Aristianti';
 const String studentId = '2415051004';
 
 void main() {
-  runApp(const MyApp());
+  // TAHAP 6: Membungkus aplikasi dengan ChangeNotifierProvider
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => CourseState(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
