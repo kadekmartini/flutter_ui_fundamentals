@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
+
+// TAHAP 6: Import package provider
 import 'package:provider/provider.dart';
+// TAHAP 5: Import file state
 import 'course_state.dart';
+// TAHAP 8: Import file model
+import 'models/course.dart';
 
 // ==========================================
 // TAHAP 0: Identitas Mahasiswa
@@ -11,6 +16,7 @@ const String studentName = 'Kadek Martini Aristianti';
 const String studentId = '2415051004';
 
 void main() {
+  // TAHAP 6: Membungkus aplikasi dengan ChangeNotifierProvider
   runApp(
     ChangeNotifierProvider(
       create: (context) => CourseState(),
@@ -45,6 +51,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
+// Fungsi helper global
 String getStatusText(String status) {
   if (status == 'done') return 'Selesai';
   if (status == 'active') return 'Berjalan';
@@ -62,13 +69,12 @@ Color getStatusColor(String status) {
 // ==========================================
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
-
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _selectedIndex = 1; // Default langsung buka tab Courses untuk mempermudah tes
+  int _selectedIndex = 1; // Default buka halaman courses agar mudah di-test
 
   final List<Widget> _pages = const [
     HomeTab(),
@@ -134,7 +140,6 @@ class _MainScreenState extends State<MainScreen> {
 // ==========================================
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
-
   @override
   State<HomeTab> createState() => _HomeTabState();
 }
@@ -167,10 +172,8 @@ class _HomeTabState extends State<HomeTab> {
         context: context,
         builder: (context) => AlertDialog(
           backgroundColor: Colors.white,
-          surfaceTintColor: Colors.transparent,
           title: const Text('Konfirmasi', style: TextStyle(fontWeight: FontWeight.bold)),
           content: const Text('Kirim masukan atau feedback ini sekarang?'),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal', style: TextStyle(color: Colors.grey))),
             ElevatedButton(
@@ -190,16 +193,8 @@ class _HomeTabState extends State<HomeTab> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 12),
-                Text('Feedback berhasil dikirim!'),
-              ],
-            ),
+            content: const Row(children: [Icon(Icons.check_circle, color: Colors.white), SizedBox(width: 12), Text('Feedback berhasil dikirim!')]),
             backgroundColor: Colors.green.shade600,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       }
@@ -219,9 +214,7 @@ class _HomeTabState extends State<HomeTab> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard Utama', style: TextStyle(fontWeight: FontWeight.w700)),
-      ),
+      appBar: AppBar(title: const Text('Dashboard Utama', style: TextStyle(fontWeight: FontWeight.w700))),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
@@ -235,7 +228,6 @@ class _HomeTabState extends State<HomeTab> {
                   return const ExpandedLayout();
                 },
               ),
-              
               _buildSectionTitle('Informasi Pengguna'),
               Row(
                 children: [
@@ -243,25 +235,13 @@ class _HomeTabState extends State<HomeTab> {
                     flex: 2,
                     child: Container(
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey.shade200),
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
-                      ),
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Icon(Icons.person_pin, size: 18, color: Colors.blue.shade600),
-                              const SizedBox(width: 6),
-                              Text('Profil Singkat', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue.shade700, fontSize: 13)),
-                            ],
-                          ),
+                          Row(children: [Icon(Icons.person_pin, size: 18, color: Colors.blue.shade600), const SizedBox(width: 6), Text('Profil Singkat', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue.shade700, fontSize: 13))]),
                           const SizedBox(height: 12),
-                          const Text(studentName, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87)),
-                          const SizedBox(height: 2),
+                          const Text(studentName, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                           Text('NIM: $studentId', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                         ],
                       ),
@@ -272,15 +252,7 @@ class _HomeTabState extends State<HomeTab> {
                     flex: 1,
                     child: Container(
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.blue.shade600, Colors.blue.shade400],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [BoxShadow(color: Colors.blue.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 3))],
-                      ),
+                      decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.blue.shade600, Colors.blue.shade400]), borderRadius: BorderRadius.circular(16)),
                       child: const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -326,7 +298,6 @@ class _HomeTabState extends State<HomeTab> {
                             filled: true,
                             fillColor: Colors.grey.shade50,
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.blue)),
                           ),
                           validator: (value) => value == null || value.trim().isEmpty ? 'Nama wajib diisi' : null,
                         ),
@@ -338,7 +309,6 @@ class _HomeTabState extends State<HomeTab> {
                             filled: true,
                             fillColor: Colors.grey.shade50,
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.blue)),
                           ),
                           validator: (value) => value == null || value.trim().isEmpty ? 'NIM wajib diisi' : null,
                         ),
@@ -351,13 +321,8 @@ class _HomeTabState extends State<HomeTab> {
                             filled: true,
                             fillColor: Colors.grey.shade50,
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.blue)),
                           ),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) return 'Komentar wajib diisi';
-                            if (value.trim().length < 5) return 'Minimal 5 karakter';
-                            return null;
-                          },
+                          validator: (value) => value == null || value.trim().isEmpty ? 'Komentar wajib diisi' : null,
                         ),
                         const SizedBox(height: 24),
                         SizedBox(
@@ -395,24 +360,28 @@ class _HomeTabState extends State<HomeTab> {
 // ==========================================
 class CoursesTab extends StatefulWidget {
   const CoursesTab({super.key});
-
   @override
   State<CoursesTab> createState() => _CoursesTabState();
 }
 
 class _CoursesTabState extends State<CoursesTab> {
-  late Future<Map<String, dynamic>> studentFuture;
-  // Local state favorite dan ValueNotifier DIHAPUS, kita murni pakai Provider sekarang!
+  // TAHAP 8: Future sekarang mengembalikan List<Course>
+  late Future<List<Course>> coursesFuture;
 
-  Future<Map<String, dynamic>> loadStudentData() async {
+  // TAHAP 8: Mengubah data JSON menjadi List Object Model Course
+  Future<List<Course>> loadCoursesData() async {
     final String jsonString = await rootBundle.loadString('assets/data/student_data.json');
-    return jsonDecode(jsonString) as Map<String, dynamic>;
+    final Map<String, dynamic> jsonData = jsonDecode(jsonString);
+    final List<dynamic> coursesJson = jsonData['courses'] ?? [];
+    
+    // Konversi Map ke Object Course
+    return coursesJson.map((json) => Course.fromJson(json)).toList();
   }
 
   @override
   void initState() {
     super.initState();
-    studentFuture = loadStudentData();
+    coursesFuture = loadCoursesData();
   }
 
   int columnsFor(double width) {
@@ -423,14 +392,14 @@ class _CoursesTabState extends State<CoursesTab> {
 
   @override
   Widget build(BuildContext context) {
-    // TAHAP 7 (Poin 30): Gunakan watch() untuk menampilkan jumlah favorite
-    // watch() mendengarkan perubahan dan akan memicu rebuild halaman ini jika jumlah favorit berubah
+    // TAHAP 7: Menggunakan watch()
     final int favoriteCount = context.watch<CourseState>().favorites.length;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Daftar Materi', style: TextStyle(fontWeight: FontWeight.w700))),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: studentFuture,
+      // TAHAP 8: FutureBuilder memakai List<Course>
+      body: FutureBuilder<List<Course>>(
+        future: coursesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -439,8 +408,7 @@ class _CoursesTabState extends State<CoursesTab> {
             return Center(child: Text('Gagal memuat data: ${snapshot.error}'));
           }
 
-          final data = snapshot.data!;
-          final List<dynamic> courses = data['courses'] as List<dynamic>? ?? [];
+          final List<Course> courses = snapshot.data ?? [];
 
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
@@ -449,36 +417,23 @@ class _CoursesTabState extends State<CoursesTab> {
               children: [
                 const Padding(
                   padding: EdgeInsets.only(left: 4, bottom: 8),
-                  child: Text(
-                    'Daftar Modul:',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
-                  ),
+                  child: Text('Daftar Modul:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
                 ),
-                
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12.0, left: 4),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.red.shade200),
-                    ),
+                    decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.red.shade200)),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.favorite, color: Colors.red.shade500, size: 16),
                         const SizedBox(width: 6),
-                        // Menampilkan hasil dari context.watch()
-                        Text(
-                          'Total Materi Favorit: $favoriteCount',
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.red.shade700),
-                        ),
+                        Text('Total Materi Favorit: $favoriteCount', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.red.shade700)),
                       ],
                     ),
                   ),
                 ),
-                
                 Expanded(
                   child: LayoutBuilder(
                     builder: (context, constraints) {
@@ -491,11 +446,8 @@ class _CoursesTabState extends State<CoursesTab> {
                         ),
                         itemCount: courses.length,
                         itemBuilder: (context, index) {
-                          final courseData = courses[index] as Map<String, dynamic>;
-                          
-                          // Pengiriman state parent-child dihapus
-                          // Child sekarang mengambil datanya sendiri ke Provider
-                          return InteractiveCourseCard(course: courseData);
+                          // TAHAP 8: Mengirimkan Object Model Course, BUKAN Map
+                          return InteractiveCourseCard(course: courses[index]);
                         },
                       );
                     },
@@ -514,17 +466,18 @@ class _CoursesTabState extends State<CoursesTab> {
 // Interactive CourseCard
 // ==========================================
 class InteractiveCourseCard extends StatelessWidget {
-  final Map<String, dynamic> course;
-  
-  // Constructor menjadi sangat bersih tanpa prop drilling
+  // TAHAP 8: Widget ini menerima model Course
+  final Course course;
+
   const InteractiveCourseCard({super.key, required this.course});
 
   @override
   Widget build(BuildContext context) {
-    final String status = course['status'] ?? 'unknown';
+    // TAHAP 8: Akses properti object dengan (.dot)
+    final String status = course.status;
     final String statusText = getStatusText(status);
     final Color statusColor = getStatusColor(status);
-    final String courseTitle = course['title'] ?? 'Unknown';
+    final String courseTitle = course.title;
 
     return Card(
       color: Colors.white,
@@ -535,20 +488,12 @@ class InteractiveCourseCard extends StatelessWidget {
         onTap: () async {
           final result = await Navigator.push<bool>(
             context,
-            MaterialPageRoute(
-              builder: (context) => CourseDetailPage(course: course),
-            ),
+            MaterialPageRoute(builder: (context) => CourseDetailPage(course: course)),
           );
           if (!context.mounted) return;
           if (result == true) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Materi berhasil dipilih!'),
-                backgroundColor: Colors.green.shade600,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                duration: const Duration(seconds: 2),
-              ),
+              SnackBar(content: const Text('Materi berhasil dipilih!'), backgroundColor: Colors.green.shade600),
             );
           }
         },
@@ -558,15 +503,8 @@ class InteractiveCourseCard extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  status == 'done' ? Icons.check_circle : (status == 'active' ? Icons.play_circle : Icons.schedule),
-                  color: statusColor,
-                  size: 24,
-                ),
+                decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.1), shape: BoxShape.circle),
+                child: Icon(status == 'done' ? Icons.check_circle : (status == 'active' ? Icons.play_circle : Icons.schedule), color: statusColor, size: 24),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -574,37 +512,22 @@ class InteractiveCourseCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      courseTitle,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    Text(courseTitle, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87), maxLines: 2, overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 4),
-                    Text(
-                      statusText,
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: statusColor),
-                    ),
+                    Text(statusText, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: statusColor)),
                   ],
                 ),
               ),
-              
-              // TAHAP 7 (Poin 32): Gunakan Consumer pada satu bagian kecil UI
-              // Hanya area icon button ini yang akan di-rebuild ulang, bukan seluruh card
+              // TAHAP 7: Consumer
               Consumer<CourseState>(
                 builder: (context, courseState, child) {
-                  final isFavorite = courseState.favorites.contains(courseTitle);
+                  final isFavorite = courseState.favorites.contains(course.code);
                   
                   return IconButton(
-                    icon: Icon(
-                      isFavorite ? Icons.favorite : Icons.favorite_border,
-                      color: isFavorite ? Colors.red : Colors.grey.shade400,
-                      size: 26,
-                    ),
+                    icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, color: isFavorite ? Colors.red : Colors.grey.shade400, size: 26),
                     onPressed: () {
-                      // TAHAP 7 (Poin 31): Gunakan read() pada tombol toggle favorite
-                      // Mengambil object tanpa mendengarkan perubahannya (cocok untuk pemicu aksi)
-                      context.read<CourseState>().toggleFavorite(courseTitle);
+                      // TAHAP 7: read()
+                      context.read<CourseState>().toggleFavorite(course.code);
                     },
                   );
                 },
@@ -707,19 +630,19 @@ class ProfileTab extends StatelessWidget {
 // COURSE DETAIL PAGE
 // ==========================================
 class CourseDetailPage extends StatelessWidget {
-  final Map<String, dynamic> course;
+  // TAHAP 8: Detail Page menerima Model Course
+  final Course course;
   const CourseDetailPage({super.key, required this.course});
 
   @override
   Widget build(BuildContext context) {
-    final String rawStatus = course['status'] ?? 'unknown';
+    // TAHAP 8: Akses properti object langsung
+    final String rawStatus = course.status;
     final String statusText = getStatusText(rawStatus);
     final Color statusColor = getStatusColor(rawStatus);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Detail Materi', style: TextStyle(fontWeight: FontWeight.w700)),
-      ),
+      appBar: AppBar(title: const Text('Detail Materi')),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
@@ -727,8 +650,6 @@ class CourseDetailPage extends StatelessWidget {
           children: [
             Card(
               color: Colors.white,
-              elevation: 1.5,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
@@ -736,7 +657,9 @@ class CourseDetailPage extends StatelessWidget {
                   children: [
                     const Text('Judul Materi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
                     const SizedBox(height: 6),
-                    Text(course['title'] ?? 'Tidak diketahui', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.black87)),
+                    Text(course.title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 4),
+                    Text('SKS: ${course.credits}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                     
                     const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Divider(color: Colors.black12)),
                     
@@ -744,10 +667,7 @@ class CourseDetailPage extends StatelessWidget {
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                      decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -761,21 +681,6 @@ class CourseDetailPage extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 30),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton.icon(
-                onPressed: () => Navigator.pop(context, true),
-                icon: const Icon(Icons.favorite_rounded),
-                label: const Text('Tandai Selesai / Favorit', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade700,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-              ),
-            ),
           ],
         ),
       ),
@@ -784,7 +689,7 @@ class CourseDetailPage extends StatelessWidget {
 }
 
 // ==========================================
-// WIDGET LAYOUT BREAKPOINT (Home Tab Info)
+// WIDGET LAYOUT BREAKPOINT
 // ==========================================
 class CompactLayout extends StatelessWidget {
   const CompactLayout({super.key});
