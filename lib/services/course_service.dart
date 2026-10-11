@@ -6,6 +6,7 @@ class CourseService {
   // TAHAP 9 (Poin 39 & 40): Memindahkan logika baca JSON ke sini
   // Return type-nya wajib berupa Future<List<Course>>
   Future<List<Course>> loadCourses() async {
+
     final jsonString = await rootBundle.loadString('assets/data/student_data.json');
     final data = jsonDecode(jsonString) as Map<String, dynamic>;
     final list = data['courses'] as List<dynamic>;
