@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
-
 // TAHAP 6: Import package provider
 import 'package:provider/provider.dart';
 // TAHAP 5: Import file state
 import 'course_state.dart';
 // TAHAP 8: Import file model
 import 'models/course.dart';
+// TAHAP 9: Import file service
+import 'services/course_service.dart';
 
 // ==========================================
 // TAHAP 0: Identitas Mahasiswa
@@ -69,13 +70,13 @@ Color getStatusColor(String status) {
 // ==========================================
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
+
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 1; // Default buka halaman courses agar mudah di-test
-
   final List<Widget> _pages = const [
     HomeTab(),
     CoursesTab(),
@@ -140,6 +141,7 @@ class _MainScreenState extends State<MainScreen> {
 // ==========================================
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
+
   @override
   State<HomeTab> createState() => _HomeTabState();
 }
@@ -360,6 +362,7 @@ class _HomeTabState extends State<HomeTab> {
 // ==========================================
 class CoursesTab extends StatefulWidget {
   const CoursesTab({super.key});
+
   @override
   State<CoursesTab> createState() => _CoursesTabState();
 }
@@ -367,21 +370,15 @@ class CoursesTab extends StatefulWidget {
 class _CoursesTabState extends State<CoursesTab> {
   // TAHAP 8: Future sekarang mengembalikan List<Course>
   late Future<List<Course>> coursesFuture;
-
-  // TAHAP 8: Mengubah data JSON menjadi List Object Model Course
-  Future<List<Course>> loadCoursesData() async {
-    final String jsonString = await rootBundle.loadString('assets/data/student_data.json');
-    final Map<String, dynamic> jsonData = jsonDecode(jsonString);
-    final List<dynamic> coursesJson = jsonData['courses'] ?? [];
-    
-    // Konversi Map ke Object Course
-    return coursesJson.map((json) => Course.fromJson(json)).toList();
-  }
+  
+  // TAHAP 9: Gunakan instance CourseService
+  final CourseService _courseService = CourseService();
 
   @override
   void initState() {
     super.initState();
-    coursesFuture = loadCoursesData();
+    // TAHAP 9: Panggil method dari service (kode jsonDecode dipindah ke service)
+    coursesFuture = _courseService.loadCourses();
   }
 
   int columnsFor(double width) {
@@ -407,9 +404,7 @@ class _CoursesTabState extends State<CoursesTab> {
           if (snapshot.hasError) {
             return Center(child: Text('Gagal memuat data: ${snapshot.error}'));
           }
-
           final List<Course> courses = snapshot.data ?? [];
-
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             child: Column(
