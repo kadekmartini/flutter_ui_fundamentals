@@ -28,3 +28,9 @@ Berikut adalah tanggung jawab singkat dari masing-masing folder pada arsitektur 
 * **`providers/`**: Mengelola *state management*. Memanggil Repository, menyimpan data ke dalam memori (state), dan menggunakan `notifyListeners()` untuk memberi tahu UI. Provider ini murni logika dan tidak menyimpan `BuildContext`.
 * **`screens/`**: Berisi halaman-halaman utama aplikasi. Hanya bertugas menampilkan UI dengan mendengarkan data dari Provider, dan tidak boleh membaca data dari sumber secara langsung (`rootBundle`).
 * **`widgets/`**: Berisi potongan komponen UI kecil yang bisa dipakai berulang kali.
+
+## Dokumentasi Endpoint REST API (Tahap 1)
+* URL Endpoint: https://course-api-pearl.vercel.app/courses
+* HTTP Method: GET
+* Status Code: 200 OK
+* Struktur JSON: id, code, title, credits, status
