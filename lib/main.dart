@@ -1,16 +1,30 @@
-// TAHAP 12: Refactor Struktur Folder
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:convert'; // Tahap 2: Untuk membaca JSON
+import 'package:http/http.dart' as http; // Tahap 2: Package HTTP
 
-// Mengimpor dari struktur folder yang sudah dirapikan
 import 'providers/course_state.dart';
 import 'providers/course_provider.dart';
 import 'services/course_service.dart';
 import 'repositories/course_repository.dart';
-import 'screens/home_page.dart'; // File baru yang membungkus semua screen
- 
+import 'screens/home_page.dart'; 
+
 const String studentName = 'Kadek Martini Aristianti';
 const String studentId = '2415051004';
+
+// ==========================================
+// KODE TAHAP 2
+// ==========================================
+const String apiUrl = 'https://course-api-pearl.vercel.app/courses';
+
+Future<List<dynamic>> fetchCourses() async {
+  final response = await http.get(Uri.parse(apiUrl));
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body) as List<dynamic>;
+  }
+  throw Exception('HTTP ${response.statusCode}');
+}
+// ==========================================
 
 String getStatusText(String status) {
   if (status == 'done') return 'Selesai';
@@ -25,6 +39,18 @@ Color getStatusColor(String status) {
 }
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // ==========================================
+  // TES TAHAP 2 (Mencetak jumlah data di Debug Console)
+  // ==========================================
+  fetchCourses().then((data) {
+    debugPrint('BERHASIL TAHAP 2! Jumlah course: ${data.length}');
+  }).catchError((e) {
+    debugPrint('ERROR TAHAP 2: $e');
+  });
+  // ==========================================
+
   runApp(
     MultiProvider(
       providers: [
@@ -51,7 +77,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Course Explorer',
       theme: ThemeData(
-        useMaterial3: true, 
+        useMaterial3: true,
         colorSchemeSeed: Colors.blue,
         scaffoldBackgroundColor: const Color(0xFFF8F9FA),
         appBarTheme: const AppBarTheme(
@@ -63,7 +89,7 @@ class MyApp extends StatelessWidget {
           surfaceTintColor: Colors.transparent,
         ),
       ),
-      home: const MainScreen(),
+      home: const MainScreen(), 
     );
   }
 }
