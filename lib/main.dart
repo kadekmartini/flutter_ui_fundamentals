@@ -1,35 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'dart:convert'; // Tahap 2: Untuk membaca JSON
-import 'package:http/http.dart' as http; // Tahap 2: Package HTTP
 
-import 'models/course.dart'; // Tahap 3: Model Course
+// [TAHAP 4 - DIHAPUS] import 'dart:convert' dan 'package:http/http.dart'
+// tidak lagi dipakai di sini, karena request HTTP dipindah ke CourseApiService.
+// [TAHAP 4 - DIHAPUS] import 'models/course.dart' ikut dihapus karena
+// fungsi fetchCourses() yang memakainya sudah dipindah ke service.
 import 'providers/course_state.dart';
 import 'providers/course_provider.dart';
-import 'services/course_service.dart';
+import 'services/course_api_service.dart'; // [TAHAP 4 - BARU] menggantikan course_service.dart
 import 'repositories/course_repository.dart';
-import 'screens/home_page.dart'; 
+import 'screens/home_page.dart';
 
 const String studentName = 'Kadek Martini Aristianti';
 const String studentId = '2415051004';
 
 // ==========================================
-// KODE TAHAP 2 + TAHAP 3
+// [TAHAP 4 - DIUBAH]
+// Sebelumnya (Tahap 2): apiUrl = '.../courses'
+// Sekarang: base URL saja TANPA '/courses', karena path '/courses'
+// ditambahkan di dalam CourseApiService.getCourses().
 // ==========================================
-const String apiUrl = 'https://course-api-pearl.vercel.app/courses';
+const String apiBaseUrl = 'https://course-api-pearl.vercel.app';
 
-// TAHAP 3: mengembalikan List<Course> (sebelumnya List<dynamic> pada Tahap 2)
-Future<List<Course>> fetchCourses() async {
-  final response = await http.get(Uri.parse(apiUrl));
-  if (response.statusCode == 200) {
-    final List<dynamic> data = jsonDecode(response.body) as List<dynamic>;
-    return data
-        .map((e) => Course.fromJson(e as Map<String, dynamic>))
-        .toList();
-  }
-  throw Exception('HTTP ${response.statusCode}');
-}
-// ==========================================
+// [TAHAP 4 - DIHAPUS] Fungsi fetchCourses() (kode GET sementara Tahap 2-3)
+// sudah dipindahkan ke lib/services/course_api_service.dart.
 
 String getStatusText(String status) {
   if (status == 'done') return 'Selesai';
@@ -46,18 +40,9 @@ Color getStatusColor(String status) {
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ==========================================
-  // TES TAHAP 3 (Mencetak hasil konversi JSON -> List<Course> di Debug Console)
-  // ==========================================
-  fetchCourses().then((courses) {
-    debugPrint('BERHASIL TAHAP 3! Jumlah course: ${courses.length}');
-    for (final c in courses.take(3)) {
-      debugPrint('code=${c.code} | title=${c.title} | status=${c.status}');
-    }
-  }).catchError((e) {
-    debugPrint('ERROR TAHAP 3: $e');
-  });
-  // ==========================================
+  // [TAHAP 4 - DIHAPUS] Blok tes fetchCourses() di sini dihapus.
+  // Pemanggilan data sekarang berjalan lewat:
+  // CourseProvider -> CourseRepository -> CourseApiService.
 
   runApp(
     MultiProvider(
@@ -65,7 +50,8 @@ void main() {
         ChangeNotifierProvider(create: (context) => CourseState()),
         ChangeNotifierProvider(
           create: (context) {
-            final service = CourseService();
+            // [TAHAP 4 - DIUBAH] sebelumnya: final service = CourseService();
+            final service = CourseApiService(apiBaseUrl);
             final repository = CourseRepository(service);
             return CourseProvider(repository)..loadCourses();
           },
@@ -97,7 +83,7 @@ class MyApp extends StatelessWidget {
           surfaceTintColor: Colors.transparent,
         ),
       ),
-      home: const MainScreen(), 
+      home: const MainScreen(),
     );
   }
 }

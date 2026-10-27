@@ -1,4 +1,5 @@
-
+// TAHAP 3: Model Course (Pertemuan 7)
+// Nama : Kadek Martini Aristianti | NIM : 2415051004
 class Course {
   final int? id;
   final String code;

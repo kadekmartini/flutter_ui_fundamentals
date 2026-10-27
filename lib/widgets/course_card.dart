@@ -1,78 +1,74 @@
-// lib/widgets/course_card.dart
+// Nama: Kadek Martini Aristianti | NIM: 2415051004
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '../main.dart' show getStatusText, getStatusColor;
 import '../models/course.dart';
 import '../providers/course_state.dart';
 import '../screens/course_detail_page.dart';
-import '../main.dart'; 
 
 class InteractiveCourseCard extends StatelessWidget {
-  final Course course;
-
   const InteractiveCourseCard({super.key, required this.course});
+
+  final Course course;
 
   @override
   Widget build(BuildContext context) {
-    final String status = course.status;
-    final String statusText = getStatusText(status);
-    final Color statusColor = getStatusColor(status);
-    final String courseTitle = course.title;
+    final courseState = context.watch<CourseState>();
+    final isFavorite = courseState.isFavorite(course.code);
+    final statusColor = getStatusColor(course.status);
 
     return Card(
-      color: Colors.white,
-      elevation: 1.5,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () async {
-          final result = await Navigator.push<bool>(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        onTap: () {
+          Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => CourseDetailPage(course: course)),
+            MaterialPageRoute(
+              builder: (_) => CourseDetailPage(course: course),
+            ),
           );
-          if (!context.mounted) return;
-          if (result == true) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: const Text('Materi berhasil dipilih!'), backgroundColor: Colors.green.shade600),
-            );
-          }
         },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.1), shape: BoxShape.circle),
-                child: Icon(status == 'done' ? Icons.check_circle : (status == 'active' ? Icons.play_circle : Icons.schedule), color: statusColor, size: 24),
+        title: Text(
+          course.title,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text('${course.code} • ${course.credits} SKS'),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: statusColor.withAlpha(30),
+                borderRadius: BorderRadius.circular(8),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(courseTitle, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87), maxLines: 2, overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 4),
-                    Text(statusText, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: statusColor)),
-                  ],
+              child: Text(
+                getStatusText(course.status),
+                style: TextStyle(
+                  color: statusColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              // TAHAP 7: Consumer
-              Consumer<CourseState>(
-                builder: (context, courseState, child) {
-                  // TAHAP 13 (Poin 55): Menggunakan helper isFavorite yang baru dibuat
-                  final isFavorite = courseState.isFavorite(course.code);
-                  
-                  return IconButton(
-                    icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, color: isFavorite ? Colors.red : Colors.grey.shade400, size: 26),
-                    onPressed: () {
-                      context.read<CourseState>().toggleFavorite(course.code);
-                    },
-                  );
-                },
+            ),
+            IconButton(
+              icon: Icon(
+                isFavorite ? Icons.favorite : Icons.favorite_border,
+                color: isFavorite ? Colors.red : Colors.grey,
               ),
-            ],
-          ),
+              onPressed: () {
+                context.read<CourseState>().toggleFavorite(course.code);
+              },
+            ),
+          ],
         ),
       ),
     );

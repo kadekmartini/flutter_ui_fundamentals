@@ -156,7 +156,7 @@ class HomeTab extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    const _ApiCoursePreview(), // TAHAP 3 (sementara)
+                    const _ApiCoursePreview(), // [TAHAP 4 - DIUBAH] sekarang membaca data dari CourseProvider
                     const SizedBox(height: 24),
                     Expanded(
                       child: courseProvider.error != null
@@ -450,65 +450,98 @@ class _ProfileTabState extends State<ProfileTab> {
 }
 
 // ==========================================
-// TAHAP 3 (sementara): menampilkan 3 course hasil konversi API -> List<Course>
-// Kode GET ini akan dipindahkan ke service pada Tahap 4.
+// [TAHAP 4 - DIUBAH] Kartu "Data dari API": menampilkan 3 course pertama.
+// Sebelumnya (Tahap 3) widget ini memanggil fetchCourses() langsung dari UI.
+// Sekarang UI tidak melakukan request HTTP sama sekali: data dibaca dari
+// CourseProvider (Provider -> Repository -> CourseApiService).
+// Widget ini tidak perlu diubah lagi pada tahap-tahap berikutnya,
+// karena tidak bergantung pada sumber data (REST API / Supabase).
 // ==========================================
-class _ApiCoursePreview extends StatefulWidget {
+class _ApiCoursePreview extends StatelessWidget {
   const _ApiCoursePreview();
 
   @override
-  State<_ApiCoursePreview> createState() => _ApiCoursePreviewState();
-}
-
-class _ApiCoursePreviewState extends State<_ApiCoursePreview> {
-  late final Future<List<Course>> _future;
-
-  @override
-  void initState() {
-    super.initState();
-    _future = fetchCourses(); // dipanggil sekali, bukan dari build()
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final courseProvider = context.watch<CourseProvider>();
+
     return Card(
       color: Colors.white,
+      elevation: 1.5,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Data dari API',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                Icon(Icons.cloud_done_outlined, size: 18, color: Colors.blue.shade700),
+                const SizedBox(width: 8),
+                Text(
+                  'Data dari API',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue.shade900),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
-            FutureBuilder<List<Course>>(
-              future: _future,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const LinearProgressIndicator();
-                }
-                if (snapshot.hasError) {
-                  return Text('Error: ${snapshot.error}');
-                }
-                final items = (snapshot.data ?? <Course>[]).take(3).toList();
-                return Column(
-                  children: items
-                      .map<Widget>((c) => ListTile(
-                            dense: true,
-                            contentPadding: EdgeInsets.zero,
-                            title: Text(c.title),
-                            subtitle: Text('Kode: ${c.code}'),
-                            trailing: Text(c.status),
-                          ))
-                      .toList(),
-                );
-              },
-            ),
+            _buildContent(courseProvider),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildContent(CourseProvider courseProvider) {
+    if (courseProvider.isLoading) {
+      return const LinearProgressIndicator();
+    }
+    if (courseProvider.error != null) {
+      return Text('Error: ${courseProvider.error}');
+    }
+
+    final List<Course> items = courseProvider.courses.take(3).toList();
+    if (items.isEmpty) {
+      return const Text('Data course belum tersedia');
+    }
+
+    return Column(
+      children: items.map<Widget>((c) {
+        final Color statusColor = getStatusColor(c.status);
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  c.code,
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(c.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  c.status,
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: statusColor),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 }
