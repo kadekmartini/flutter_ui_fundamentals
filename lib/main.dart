@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'dart:convert'; // Tahap 2: Untuk membaca JSON
 import 'package:http/http.dart' as http; // Tahap 2: Package HTTP
 
+import 'models/course.dart'; // Tahap 3: Model Course
 import 'providers/course_state.dart';
 import 'providers/course_provider.dart';
 import 'services/course_service.dart';
@@ -13,14 +14,18 @@ const String studentName = 'Kadek Martini Aristianti';
 const String studentId = '2415051004';
 
 // ==========================================
-// KODE TAHAP 2
+// KODE TAHAP 2 + TAHAP 3
 // ==========================================
 const String apiUrl = 'https://course-api-pearl.vercel.app/courses';
 
-Future<List<dynamic>> fetchCourses() async {
+// TAHAP 3: mengembalikan List<Course> (sebelumnya List<dynamic> pada Tahap 2)
+Future<List<Course>> fetchCourses() async {
   final response = await http.get(Uri.parse(apiUrl));
   if (response.statusCode == 200) {
-    return jsonDecode(response.body) as List<dynamic>;
+    final List<dynamic> data = jsonDecode(response.body) as List<dynamic>;
+    return data
+        .map((e) => Course.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
   throw Exception('HTTP ${response.statusCode}');
 }
@@ -42,12 +47,15 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
   // ==========================================
-  // TES TAHAP 2 (Mencetak jumlah data di Debug Console)
+  // TES TAHAP 3 (Mencetak hasil konversi JSON -> List<Course> di Debug Console)
   // ==========================================
-  fetchCourses().then((data) {
-    debugPrint('BERHASIL TAHAP 2! Jumlah course: ${data.length}');
+  fetchCourses().then((courses) {
+    debugPrint('BERHASIL TAHAP 3! Jumlah course: ${courses.length}');
+    for (final c in courses.take(3)) {
+      debugPrint('code=${c.code} | title=${c.title} | status=${c.status}');
+    }
   }).catchError((e) {
-    debugPrint('ERROR TAHAP 2: $e');
+    debugPrint('ERROR TAHAP 3: $e');
   });
   // ==========================================
 

@@ -155,6 +155,8 @@ class HomeTab extends StatelessWidget {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 16),
+                    const _ApiCoursePreview(), // TAHAP 3 (sementara)
                     const SizedBox(height: 24),
                     Expanded(
                       child: courseProvider.error != null
@@ -441,6 +443,70 @@ class _ProfileTabState extends State<ProfileTab> {
               )
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// TAHAP 3 (sementara): menampilkan 3 course hasil konversi API -> List<Course>
+// Kode GET ini akan dipindahkan ke service pada Tahap 4.
+// ==========================================
+class _ApiCoursePreview extends StatefulWidget {
+  const _ApiCoursePreview();
+
+  @override
+  State<_ApiCoursePreview> createState() => _ApiCoursePreviewState();
+}
+
+class _ApiCoursePreviewState extends State<_ApiCoursePreview> {
+  late final Future<List<Course>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = fetchCourses(); // dipanggil sekali, bukan dari build()
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Data dari API',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            FutureBuilder<List<Course>>(
+              future: _future,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const LinearProgressIndicator();
+                }
+                if (snapshot.hasError) {
+                  return Text('Error: ${snapshot.error}');
+                }
+                final items = (snapshot.data ?? <Course>[]).take(3).toList();
+                return Column(
+                  children: items
+                      .map<Widget>((c) => ListTile(
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(c.title),
+                            subtitle: Text('Kode: ${c.code}'),
+                            trailing: Text(c.status),
+                          ))
+                      .toList(),
+                );
+              },
+            ),
+          ],
         ),
       ),
     );

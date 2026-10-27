@@ -3,31 +3,13 @@
     "nim": "2415051004",
     "name": "Kadek Martini Aristianti"
   },
- 
+
   "courses": [
-    {
-      "title": "Flutter",
-      "status": "done"
-    },
-    {
-      "title": "Git",
-      "status": "done"
-    },
-    {
-      "title": "Dart",
-      "status": "done"
-    },
-    {
-      "title": "Flutter UI Fundamental",
-      "status": "active"
-    },
-    {
-      "title": "Responsive Layout",
-      "status": "active"
-    },
-    {
-      "title": "Navigation & User Interaction",
-      "status": "planned"
-    }
+    { "code": "FLT01", "title": "Flutter", "credits": 3, "status": "done" },
+    { "code": "GIT01", "title": "Git", "credits": 2, "status": "done" },
+    { "code": "DRT01", "title": "Dart", "credits": 2, "status": "done" },
+    { "code": "FUI01", "title": "Flutter UI Fundamental", "credits": 3, "status": "active" },
+    { "code": "RSP01", "title": "Responsive Layout", "credits": 2, "status": "active" },
+    { "code": "NAV01", "title": "Navigation & User Interaction", "credits": 2, "status": "planned" }
   ]
 }
