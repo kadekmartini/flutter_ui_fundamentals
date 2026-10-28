@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/course.dart';
+import '../providers/course_provider.dart';
 import '../providers/course_state.dart';
 import '../main.dart';
 import 'edit_course_page.dart';
@@ -39,6 +40,110 @@ class CourseDetailPage extends StatelessWidget {
 
     if (updated == true) {
       Navigator.of(context).pop(true);
+    }
+  }
+
+  Future<void> _deleteCourse(BuildContext context) async {
+    if (course.id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Course tidak memiliki ID dan tidak dapat dihapus.',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Konfirmasi Hapus'),
+          content: Text(
+            'Yakin ingin menghapus "${course.title}" '
+            '(${course.code})?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              child: const Text('Batal'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Hapus'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!context.mounted || confirmed != true) {
+      return;
+    }
+
+    final CourseProvider provider =
+        context.read<CourseProvider>();
+
+    final CourseState courseState =
+        context.read<CourseState>();
+
+    try {
+      await provider.deleteCourse(course.id!);
+
+      if (!context.mounted) {
+        return;
+      }
+
+      if (courseState.isFavorite(course.code)) {
+        courseState.toggleFavorite(course.code);
+      }
+
+      await provider.loadCourses();
+
+      if (!context.mounted) {
+        return;
+      }
+
+      final bool refreshFailed = provider.error != null;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            refreshFailed
+                ? 'Course berhasil dihapus, tetapi daftar gagal dimuat ulang.'
+                : 'Course ${course.code} berhasil dihapus.',
+          ),
+          backgroundColor: refreshFailed
+              ? Colors.orange.shade700
+              : Colors.green.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!context.mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal menghapus course: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -80,6 +185,14 @@ class CourseDetailPage extends StatelessWidget {
               );
             },
           ),
+          IconButton(
+            tooltip: 'Hapus Course',
+            icon: const Icon(Icons.delete_outline),
+            color: Colors.red,
+            onPressed: course.id == null
+                ? null
+                : () => _deleteCourse(context),
+          ),
           const SizedBox(width: 8),
         ],
       ),
@@ -96,7 +209,7 @@ class CourseDetailPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  'Kadek Martini Aristianti • 2415051004',
+                  '$studentName • $studentId',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
@@ -214,6 +327,27 @@ class CourseDetailPage extends StatelessWidget {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue.shade700,
                             foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: OutlinedButton.icon(
+                          onPressed: course.id == null
+                              ? null
+                              : () => _deleteCourse(context),
+                          icon: const Icon(Icons.delete_outline),
+                          label: const Text('Hapus Course'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red.shade700,
+                            side: BorderSide(
+                              color: Colors.red.shade300,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
