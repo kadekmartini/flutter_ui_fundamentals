@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'config/supabase_config.dart';
 import 'providers/course_state.dart';
 import 'providers/course_provider.dart';
+import 'repositories/course_repository.dart';
 import 'services/course_data_source.dart';
 import 'services/course_api_service.dart';
-import 'repositories/course_repository.dart';
 import 'screens/home_page.dart';
 
 const String studentName = 'Kadek Martini Aristianti';
@@ -25,8 +27,19 @@ Color getStatusColor(String status) {
   return Colors.grey.shade600;
 }
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(
+    url: SupabaseConfig.url,
+    publishableKey: SupabaseConfig.publishableKey,
+  );
+
+  final CourseDataSource dataSource =
+      CourseApiService(apiBaseUrl);
+
+  final CourseRepository repository =
+      CourseRepository(dataSource);
 
   runApp(
     MultiProvider(
@@ -35,15 +48,7 @@ void main() {
           create: (_) => CourseState(),
         ),
         ChangeNotifierProvider<CourseProvider>(
-          create: (_) {
-            final CourseDataSource dataSource =
-                CourseApiService(apiBaseUrl);
-
-            final CourseRepository repository =
-                CourseRepository(dataSource);
-
-            return CourseProvider(repository)..loadCourses();
-          },
+          create: (_) => CourseProvider(repository)..loadCourses(),
         ),
       ],
       child: const MyApp(),
