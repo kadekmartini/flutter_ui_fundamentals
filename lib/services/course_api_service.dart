@@ -1,11 +1,5 @@
-// Nama: Kadek Martini Aristianti
-// NIM: 2415051004
-// TAHAP 6: Service Layer untuk HTTP GET dan POST
-
 import 'dart:convert';
-
 import 'package:http/http.dart' as http;
-
 import '../models/course.dart';
 
 class CourseApiService {
@@ -13,7 +7,6 @@ class CourseApiService {
 
   final String baseUrl;
 
-  // Mengambil daftar course dari API.
   Future<List<Course>> getCourses() async {
     final response = await http.get(
       Uri.parse('$baseUrl/courses'),
@@ -37,7 +30,6 @@ class CourseApiService {
         .toList();
   }
 
-  // Menambahkan course baru melalui HTTP POST.
   Future<Course> createCourse(Course course) async {
     final response = await http.post(
       Uri.parse('$baseUrl/courses'),
@@ -58,5 +50,23 @@ class CourseApiService {
       'Gagal membuat course. HTTP ${response.statusCode}: '
       '${response.body}',
     );
+  }
+
+  Future<void> updateCourse(int id, Course course) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/courses/$id'),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(course.toJson()),
+    );
+
+    if (response.statusCode < 200 ||
+        response.statusCode >= 300) {
+      throw Exception(
+        'Gagal memperbarui course. HTTP ${response.statusCode}: '
+        '${response.body}',
+      );
+    }
   }
 }
