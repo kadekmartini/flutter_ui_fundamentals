@@ -1,29 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-// [TAHAP 4 - DIHAPUS] import 'dart:convert' dan 'package:http/http.dart'
-// tidak lagi dipakai di sini, karena request HTTP dipindah ke CourseApiService.
-// [TAHAP 4 - DIHAPUS] import 'models/course.dart' ikut dihapus karena
-// fungsi fetchCourses() yang memakainya sudah dipindah ke service.
 import 'providers/course_state.dart';
 import 'providers/course_provider.dart';
-import 'services/course_api_service.dart'; // [TAHAP 4 - BARU] menggantikan course_service.dart
+import 'services/course_data_source.dart';
+import 'services/course_api_service.dart';
 import 'repositories/course_repository.dart';
 import 'screens/home_page.dart';
 
 const String studentName = 'Kadek Martini Aristianti';
 const String studentId = '2415051004';
 
-// ==========================================
-// [TAHAP 4 - DIUBAH]
-// Sebelumnya (Tahap 2): apiUrl = '.../courses'
-// Sekarang: base URL saja TANPA '/courses', karena path '/courses'
-// ditambahkan di dalam CourseApiService.getCourses().
-// ==========================================
 const String apiBaseUrl = 'https://course-api-pearl.vercel.app';
-
-// [TAHAP 4 - DIHAPUS] Fungsi fetchCourses() (kode GET sementara Tahap 2-3)
-// sudah dipindahkan ke lib/services/course_api_service.dart.
 
 String getStatusText(String status) {
   if (status == 'done') return 'Selesai';
@@ -40,19 +28,20 @@ Color getStatusColor(String status) {
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // [TAHAP 4 - DIHAPUS] Blok tes fetchCourses() di sini dihapus.
-  // Pemanggilan data sekarang berjalan lewat:
-  // CourseProvider -> CourseRepository -> CourseApiService.
-
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (context) => CourseState()),
-        ChangeNotifierProvider(
-          create: (context) {
-            // [TAHAP 4 - DIUBAH] sebelumnya: final service = CourseService();
-            final service = CourseApiService(apiBaseUrl);
-            final repository = CourseRepository(service);
+        ChangeNotifierProvider<CourseState>(
+          create: (_) => CourseState(),
+        ),
+        ChangeNotifierProvider<CourseProvider>(
+          create: (_) {
+            final CourseDataSource dataSource =
+                CourseApiService(apiBaseUrl);
+
+            final CourseRepository repository =
+                CourseRepository(dataSource);
+
             return CourseProvider(repository)..loadCourses();
           },
         ),
