@@ -1,35 +1,65 @@
-// TAHAP 11: Membuat Provider untuk mengelola Async State (Loading, Success, Error)
+// Nama: Kadek Martini Aristianti
+// NIM: 2415051004
+// TAHAP 6: Provider untuk GET dan POST
+
 import 'package:flutter/foundation.dart';
+
 import '../models/course.dart';
 import '../repositories/course_repository.dart';
 
 class CourseProvider extends ChangeNotifier {
-  final CourseRepository repository;
-
-  // TAHAP 11: Menerima repository sebagai dependency
   CourseProvider(this.repository);
 
-  // State yang akan diamati oleh UI
+  final CourseRepository repository;
+
+  // State daftar course.
   List<Course> courses = [];
+
+  // State loading data.
   bool isLoading = false;
+
+  // State error.
   String? error;
 
-  // TAHAP 11: Implementasi loadCourses() dengan pengelolaan state
+  // State saat menyimpan course baru.
+  bool isSaving = false;
+
+  // Mengambil daftar course dari repository.
   Future<void> loadCourses() async {
     isLoading = true;
     error = null;
-    notifyListeners(); // Beritahu UI untuk menampilkan loading
+
+    notifyListeners();
 
     try {
-      // TAHAP 11: Menambahkan sedikit delay buatan agar efek loading-nya terlihat jelas
-      await Future.delayed(const Duration(seconds: 1)); 
-      
+      // Delay agar indikator loading terlihat saat praktikum.
+      await Future.delayed(const Duration(seconds: 1));
+
       courses = await repository.getCourses();
     } catch (e) {
-      error = e.toString(); // Tangkap error jika gagal
+      error = e.toString();
     } finally {
       isLoading = false;
-      notifyListeners(); // Beritahu UI bahwa proses selesai (berhasil/gagal)
+      notifyListeners();
+    }
+  }
+
+  // Membuat course baru melalui repository.
+  Future<Course> createCourse(Course course) async {
+    isSaving = true;
+    error = null;
+
+    notifyListeners();
+
+    try {
+      final createdCourse = await repository.createCourse(course);
+      return createdCourse;
+    } catch (e) {
+      error = e.toString();
+      rethrow;
+    } finally {
+      isSaving = false;
+      notifyListeners();
     }
   }
 }

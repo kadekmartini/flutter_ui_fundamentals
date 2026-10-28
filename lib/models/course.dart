@@ -1,5 +1,7 @@
-// TAHAP 3: Model Course (Pertemuan 7)
-// Nama : Kadek Martini Aristianti | NIM : 2415051004
+// Nama: Kadek Martini Aristianti
+// NIM: 2415051004
+// TAHAP 6: Model Course dan JSON Mapping
+
 class Course {
   final int? id;
   final String code;
@@ -25,10 +27,12 @@ class Course {
     );
   }
 
-  Map<String, dynamic> toJson() => {
-    'code': code,
-    'title': title,
-    'credits': credits,
-    'status': status,
-  };
+  Map<String, dynamic> toJson() {
+    return {
+      'code': code,
+      'title': title,
+      'credits': credits,
+      'status': status,
+    };
+  }
 }
