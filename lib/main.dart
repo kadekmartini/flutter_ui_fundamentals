@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -7,13 +8,11 @@ import 'providers/course_state.dart';
 import 'providers/course_provider.dart';
 import 'repositories/course_repository.dart';
 import 'services/course_data_source.dart';
-import 'services/course_api_service.dart';
+import 'services/course_supabase_service.dart';
 import 'screens/home_page.dart';
 
 const String studentName = 'Kadek Martini Aristianti';
 const String studentId = '2415051004';
-
-const String apiBaseUrl = 'https://course-api-pearl.vercel.app';
 
 String getStatusText(String status) {
   if (status == 'done') return 'Selesai';
@@ -35,11 +34,9 @@ Future<void> main() async {
     publishableKey: SupabaseConfig.publishableKey,
   );
 
-  final CourseDataSource dataSource =
-      CourseApiService(apiBaseUrl);
+  final CourseDataSource dataSource = CourseSupabaseService();
 
-  final CourseRepository repository =
-      CourseRepository(dataSource);
+  final CourseRepository repository = CourseRepository(dataSource);
 
   runApp(
     MultiProvider(
