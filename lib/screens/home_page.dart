@@ -5,6 +5,7 @@ import '../models/course.dart';
 import '../providers/course_state.dart';
 import '../providers/course_provider.dart';
 import '../widgets/course_card.dart';
+import '../widgets/error_view.dart'; // [TAHAP 5 - BARU]
 import '../main.dart'; 
 import 'favorites_page.dart'; 
 
@@ -159,17 +160,23 @@ class HomeTab extends StatelessWidget {
                     const _ApiCoursePreview(), // [TAHAP 4 - DIUBAH] sekarang membaca data dari CourseProvider
                     const SizedBox(height: 24),
                     Expanded(
+                      // [TAHAP 5 - DIUBAH] error -> ErrorView + Retry, empty -> pesan
                       child: courseProvider.error != null
-                          ? Center(child: Text('Error: ${courseProvider.error}'))
-                          : ListView.builder(
-                              itemCount: courseProvider.courses.length,
-                              itemBuilder: (context, index) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 12.0),
-                                  child: InteractiveCourseCard(course: courseProvider.courses[index]),
-                                );
-                              },
-                            ),
+                          ? ErrorView(
+                              message: courseProvider.error!,
+                              onRetry: courseProvider.loadCourses,
+                            )
+                          : courseProvider.courses.isEmpty
+                              ? const Center(child: Text('Data course belum tersedia'))
+                              : ListView.builder(
+                                  itemCount: courseProvider.courses.length,
+                                  itemBuilder: (context, index) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 12.0),
+                                      child: InteractiveCourseCard(course: courseProvider.courses[index]),
+                                    );
+                                  },
+                                ),
                     ),
                   ],
                 ),
@@ -212,10 +219,16 @@ class CoursesTab extends StatelessWidget {
       body: Consumer<CourseProvider>(
         builder: (context, courseProvider, child) {
           if (courseProvider.isLoading) return const Center(child: CircularProgressIndicator());
-          if (courseProvider.error != null) return Center(child: Text('Gagal memuat data: ${courseProvider.error}'));
+          // [TAHAP 5 - DIUBAH] error -> ErrorView + tombol Retry
+          if (courseProvider.error != null) {
+            return ErrorView(
+              message: courseProvider.error!,
+              onRetry: courseProvider.loadCourses,
+            );
+          }
           
           final List<Course> courses = courseProvider.courses;
-          if (courses.isEmpty) return const Center(child: Text('Tidak ada materi yang tersedia.'));
+          if (courses.isEmpty) return const Center(child: Text('Data course belum tersedia')); // [TAHAP 5 - DIUBAH]
 
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
@@ -464,6 +477,9 @@ class _ApiCoursePreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final courseProvider = context.watch<CourseProvider>();
 
+    // [TAHAP 5 - BARU] saat error, pesan + tombol Retry ditampilkan oleh ErrorView
+    if (courseProvider.error != null) return const SizedBox.shrink();
+
     return Card(
       color: Colors.white,
       elevation: 1.5,
@@ -494,9 +510,6 @@ class _ApiCoursePreview extends StatelessWidget {
   Widget _buildContent(CourseProvider courseProvider) {
     if (courseProvider.isLoading) {
       return const LinearProgressIndicator();
-    }
-    if (courseProvider.error != null) {
-      return Text('Error: ${courseProvider.error}');
     }
 
     final List<Course> items = courseProvider.courses.take(3).toList();
