@@ -9,10 +9,12 @@ import 'providers/course_provider.dart';
 import 'repositories/course_repository.dart';
 import 'services/course_data_source.dart';
 import 'services/course_supabase_service.dart';
-import 'screens/home_page.dart';
+import 'screens/responsive_shell.dart';
 
 const String studentName = 'Kadek Martini Aristianti';
 const String studentId = '2415051004';
+
+const String apiBaseUrl = 'https://course-api-pearl.vercel.app';
 
 String getStatusText(String status) {
   if (status == 'done') return 'Selesai';
@@ -35,7 +37,6 @@ Future<void> main() async {
   );
 
   final CourseDataSource dataSource = CourseSupabaseService();
-
   final CourseRepository repository = CourseRepository(dataSource);
 
   runApp(
@@ -60,21 +61,20 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Course Explorer',
+      title: 'Course Data Manager',
       theme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: Colors.blue,
-        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
+        scaffoldBackgroundColor: const Color(0xFFF4F8FB),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black87,
-          elevation: 0.5,
-          shadowColor: Colors.black12,
-          centerTitle: true,
+          backgroundColor: Color(0xFF1976D2),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: false,
           surfaceTintColor: Colors.transparent,
         ),
       ),
-      home: const MainScreen(),
+      home: const ResponsiveShell(),
     );
   }
 }

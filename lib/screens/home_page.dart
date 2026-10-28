@@ -144,7 +144,7 @@ class HomeTab extends StatelessWidget {
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,
         title: const Text(
-          'Course Explorer v2',
+          'Course Data Manager',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -906,7 +906,7 @@ class _ApiCoursePreview extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Data dari API',
+                  'Data dari Supabase',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.blue.shade900,
