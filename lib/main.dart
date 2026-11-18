@@ -9,7 +9,7 @@ import 'providers/course_provider.dart';
 import 'repositories/course_repository.dart';
 import 'services/course_data_source.dart';
 import 'services/course_supabase_service.dart';
-import 'screens/responsive_shell.dart';
+import 'screens/login_page.dart';
 
 const String studentName = 'Kadek Martini Aristianti';
 const String studentId = '2415051004';
@@ -67,15 +67,20 @@ class MyApp extends StatelessWidget {
         colorSchemeSeed: Colors.blue,
         scaffoldBackgroundColor: const Color(0xFFF4F8FB),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF1976D2),
-          foregroundColor: Colors.white,
+          backgroundColor: Color(0xFFF4F8FC),
+          foregroundColor: Color(0xFF26364A),
+          iconTheme: IconThemeData(
+            color: Color(0xFF26364A),
+          ),
+          actionsIconTheme: IconThemeData(
+            color: Color(0xFF26364A),
+          ),
           elevation: 0,
           centerTitle: false,
           surfaceTintColor: Colors.transparent,
         ),
       ),
-      home: const ResponsiveShell(),
+      home: const LoginPage(),
     );
   }
 }
- 
