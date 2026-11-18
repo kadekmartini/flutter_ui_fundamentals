@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -24,8 +23,7 @@ class _CourseListPageState extends State<CourseListPage> {
   static const Color textColor = Color(0xFF26364A);
   static const Color mutedColor = Color(0xFF718096);
 
-  final TextEditingController _searchController =
-      TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   String _selectedFilter = 'all';
 
@@ -42,14 +40,9 @@ class _CourseListPageState extends State<CourseListPage> {
     super.dispose();
   }
 
-  Future<void> _openForm(
-    BuildContext context, {
-    Course? course,
-  }) async {
+  Future<void> _openForm(BuildContext context, {Course? course}) async {
     final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
-        builder: (_) => CourseFormPage(course: course),
-      ),
+      MaterialPageRoute<bool>(builder: (_) => CourseFormPage(course: course)),
     );
 
     if (result != true || !context.mounted) return;
@@ -67,8 +60,8 @@ class _CourseListPageState extends State<CourseListPage> {
           refreshFailed
               ? 'Data tersimpan, tetapi daftar gagal dimuat ulang.'
               : course == null
-                  ? 'Kursus berhasil ditambahkan.'
-                  : 'Kursus berhasil diperbarui.',
+              ? 'Kursus berhasil ditambahkan.'
+              : 'Kursus berhasil diperbarui.',
         ),
         backgroundColor: refreshFailed
             ? Colors.orange.shade700
@@ -78,14 +71,9 @@ class _CourseListPageState extends State<CourseListPage> {
     );
   }
 
-  Future<void> _openDetail(
-    BuildContext context,
-    Course course,
-  ) async {
+  Future<void> _openDetail(BuildContext context, Course course) async {
     final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
-        builder: (_) => CourseDetailPage(course: course),
-      ),
+      MaterialPageRoute<bool>(builder: (_) => CourseDetailPage(course: course)),
     );
 
     if (result == true && context.mounted) {
@@ -93,15 +81,10 @@ class _CourseListPageState extends State<CourseListPage> {
     }
   }
 
-  Future<void> _deleteCourse(
-    BuildContext context,
-    Course course,
-  ) async {
+  Future<void> _deleteCourse(BuildContext context, Course course) async {
     if (course.id == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('ID kursus tidak ditemukan.'),
-        ),
+        const SnackBar(content: Text('ID kursus tidak ditemukan.')),
       );
       return;
     }
@@ -198,14 +181,14 @@ class _CourseListPageState extends State<CourseListPage> {
     final query = _searchController.text.trim().toLowerCase();
 
     return courses.where((course) {
-      final matchesSearch = query.isEmpty ||
+      final matchesSearch =
+          query.isEmpty ||
           course.title.toLowerCase().contains(query) ||
           course.code.toLowerCase().contains(query) ||
           course.status.toLowerCase().contains(query);
 
       final matchesStatus =
-          _selectedFilter == 'all' ||
-          course.status == _selectedFilter;
+          _selectedFilter == 'all' || course.status == _selectedFilter;
 
       return matchesSearch && matchesStatus;
     }).toList();
@@ -214,18 +197,39 @@ class _CourseListPageState extends State<CourseListPage> {
   int _countByStatus(List<Course> courses, String status) {
     if (status == 'all') return courses.length;
 
-    return courses
-        .where((course) => course.status == status)
-        .length;
+    return courses.where((course) => course.status == status).length;
+  }
+
+  Widget _buildAddButton(CourseProvider provider) {
+    return SizedBox(
+      height: 49,
+      child: FilledButton.icon(
+        onPressed: provider.isSaving ? null : () => _openForm(context),
+        style: FilledButton.styleFrom(
+          backgroundColor: primaryColor,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: primaryColor.withValues(alpha: 0.45),
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        icon: const Icon(Icons.add_circle_outline_rounded, size: 21),
+        label: const Text(
+          'Tambah Kursus',
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
   }
 
   Widget _buildHeader(CourseProvider provider) {
-    return Wrap(
-      alignment: WrapAlignment.spaceBetween,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      runSpacing: 14,
-      children: [
-        const Column(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 560;
+
+        const titleSection = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
@@ -239,38 +243,34 @@ class _CourseListPageState extends State<CourseListPage> {
             SizedBox(height: 5),
             Text(
               'Kelola seluruh materi pembelajaran.',
-              style: TextStyle(
-                fontSize: 12,
-                color: mutedColor,
-              ),
+              style: TextStyle(fontSize: 12, color: mutedColor),
             ),
           ],
-        ),
-        FilledButton.icon(
-          onPressed: provider.isSaving
-              ? null
-              : () => _openForm(context),
-          style: FilledButton.styleFrom(
-            backgroundColor: primaryColor,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 17,
-              vertical: 14,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          icon: const Icon(Icons.add_rounded, size: 20),
-          label: const Text(
-            'Tambah Kursus',
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 12,
-            ),
-          ),
-        ),
-      ],
+        );
+
+        if (compact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              titleSection,
+              const SizedBox(height: 15),
+              SizedBox(
+                width: double.infinity,
+                child: _buildAddButton(provider),
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Expanded(child: titleSection),
+            const SizedBox(width: 18),
+            _buildAddButton(provider),
+          ],
+        );
+      },
     );
   }
 
@@ -281,14 +281,8 @@ class _CourseListPageState extends State<CourseListPage> {
       textInputAction: TextInputAction.search,
       decoration: InputDecoration(
         hintText: 'Cari nama, kode, atau status kursus...',
-        hintStyle: const TextStyle(
-          color: Color(0xFF9AA7B5),
-          fontSize: 12,
-        ),
-        prefixIcon: const Icon(
-          Icons.search_rounded,
-          color: primaryColor,
-        ),
+        hintStyle: const TextStyle(color: Color(0xFF9AA7B5), fontSize: 12),
+        prefixIcon: const Icon(Icons.search_rounded, color: primaryColor),
         suffixIcon: _searchController.text.isEmpty
             ? null
             : IconButton(
@@ -304,22 +298,15 @@ class _CourseListPageState extends State<CourseListPage> {
         contentPadding: const EdgeInsets.symmetric(vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: const BorderSide(
-            color: Color(0xFFE8EEF5),
-          ),
+          borderSide: const BorderSide(color: Color(0xFFE8EEF5)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: const BorderSide(
-            color: Color(0xFFE8EEF5),
-          ),
+          borderSide: const BorderSide(color: Color(0xFFE8EEF5)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: const BorderSide(
-            color: primaryColor,
-            width: 1.4,
-          ),
+          borderSide: const BorderSide(color: primaryColor, width: 1.4),
         ),
       ),
     );
@@ -362,9 +349,7 @@ class _CourseListPageState extends State<CourseListPage> {
                     label,
                     style: TextStyle(
                       fontSize: 11,
-                      fontWeight: selected
-                          ? FontWeight.w700
-                          : FontWeight.w500,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                       color: selected ? primaryColor : mutedColor,
                     ),
                   ),
@@ -375,9 +360,7 @@ class _CourseListPageState extends State<CourseListPage> {
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: selected
-                          ? primaryColor
-                          : const Color(0xFFF0F4F8),
+                      color: selected ? primaryColor : const Color(0xFFF0F4F8),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -417,11 +400,7 @@ class _CourseListPageState extends State<CourseListPage> {
                 color: Color(0xFFEAF3FF),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                icon,
-                color: primaryColor,
-                size: 38,
-              ),
+              child: Icon(icon, color: primaryColor, size: 38),
             ),
             const SizedBox(height: 18),
             Text(
@@ -464,16 +443,11 @@ class _CourseListPageState extends State<CourseListPage> {
     List<Course> courses,
   ) {
     if (provider.isLoading && provider.courses.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (provider.error != null && provider.courses.isEmpty) {
-      return ErrorView(
-        message: provider.error!,
-        onRetry: provider.loadCourses,
-      );
+      return ErrorView(message: provider.error!, onRetry: provider.loadCourses);
     }
 
     if (provider.courses.isEmpty) {
@@ -503,20 +477,15 @@ class _CourseListPageState extends State<CourseListPage> {
 
     return Column(
       children: [
-        if (provider.isLoading)
-          const LinearProgressIndicator(minHeight: 2),
+        if (provider.isLoading) const LinearProgressIndicator(minHeight: 2),
         Expanded(
           child: RefreshIndicator(
             onRefresh: provider.loadCourses,
             child: ListView.separated(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.only(
-                top: 4,
-                bottom: 25,
-              ),
+              padding: const EdgeInsets.only(top: 4, bottom: 25),
               itemCount: courses.length,
-              separatorBuilder: (_, _) =>
-                  const SizedBox(height: 12),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final course = courses[index];
 
@@ -528,14 +497,8 @@ class _CourseListPageState extends State<CourseListPage> {
                     favoriteState.toggleFavorite(course.code);
                   },
                   onTap: () => _openDetail(context, course),
-                  onEdit: () => _openForm(
-                    context,
-                    course: course,
-                  ),
-                  onDelete: () => _deleteCourse(
-                    context,
-                    course,
-                  ),
+                  onEdit: () => _openForm(context, course: course),
+                  onDelete: () => _deleteCourse(context, course),
                 );
               },
             ),
@@ -562,14 +525,10 @@ class _CourseListPageState extends State<CourseListPage> {
         automaticallyImplyLeading: false,
         title: const Row(
           children: [
-            Icon(
-              Icons.school_rounded,
-              color: primaryColor,
-              size: 25,
-            ),
+            Icon(Icons.school_rounded, color: primaryColor, size: 25),
             SizedBox(width: 10),
             Text(
-              'Manajemen Kursus',
+              'Kursus',
               style: TextStyle(
                 color: textColor,
                 fontSize: 18,
@@ -581,13 +540,8 @@ class _CourseListPageState extends State<CourseListPage> {
         actions: [
           IconButton(
             tooltip: 'Muat Ulang Kursus',
-            onPressed: provider.isLoading
-                ? null
-                : provider.loadCourses,
-            icon: const Icon(
-              Icons.refresh_rounded,
-              color: textColor,
-            ),
+            onPressed: provider.isLoading ? null : provider.loadCourses,
+            icon: const Icon(Icons.refresh_rounded, color: textColor),
           ),
           const SizedBox(width: 8),
         ],
@@ -595,8 +549,7 @@ class _CourseListPageState extends State<CourseListPage> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final horizontalPadding =
-                constraints.maxWidth < 600 ? 17.0 : 28.0;
+            final horizontalPadding = constraints.maxWidth < 600 ? 17.0 : 28.0;
 
             return Center(
               child: ConstrainedBox(

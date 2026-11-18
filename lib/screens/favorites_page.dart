@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -18,14 +17,9 @@ class FavoritesPage extends StatelessWidget {
   static const Color textColor = Color(0xFF26364A);
   static const Color mutedColor = Color(0xFF718096);
 
-  Future<void> _openDetail(
-    BuildContext context,
-    Course course,
-  ) async {
+  Future<void> _openDetail(BuildContext context, Course course) async {
     final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
-        builder: (_) => CourseDetailPage(course: course),
-      ),
+      MaterialPageRoute<bool>(builder: (_) => CourseDetailPage(course: course)),
     );
 
     if (result == true && context.mounted) {
@@ -39,10 +33,7 @@ class FavoritesPage extends StatelessWidget {
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [
-            Color(0xFF1976D2),
-            Color(0xFF1255A0),
-          ],
+          colors: [Color(0xFF1976D2), Color(0xFF1255A0)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -115,16 +106,11 @@ class FavoritesPage extends StatelessWidget {
 
   Widget _buildCountCard(int totalFavorites) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 17,
-        vertical: 15,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 15),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFE8EEF5),
-        ),
+        border: Border.all(color: const Color(0xFFE8EEF5)),
       ),
       child: Row(
         children: [
@@ -167,10 +153,7 @@ class FavoritesPage extends StatelessWidget {
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 7,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
             decoration: BoxDecoration(
               color: const Color(0xFFFFF0F2),
               borderRadius: BorderRadius.circular(10),
@@ -222,11 +205,7 @@ class FavoritesPage extends StatelessWidget {
             const Text(
               'Simpan kursus yang kamu sukai dengan menekan menu favorit pada kartu kursus.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: mutedColor,
-                fontSize: 12,
-                height: 1.6,
-              ),
+              style: TextStyle(color: mutedColor, fontSize: 12, height: 1.6),
             ),
           ],
         ),
@@ -241,16 +220,11 @@ class FavoritesPage extends StatelessWidget {
     List<Course> favoriteCourses,
   ) {
     if (provider.isLoading && provider.courses.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (provider.error != null && provider.courses.isEmpty) {
-      return ErrorView(
-        message: provider.error!,
-        onRetry: provider.loadCourses,
-      );
+      return ErrorView(message: provider.error!, onRetry: provider.loadCourses);
     }
 
     if (favoriteCourses.isEmpty) {
@@ -259,20 +233,15 @@ class FavoritesPage extends StatelessWidget {
 
     return Column(
       children: [
-        if (provider.isLoading)
-          const LinearProgressIndicator(minHeight: 2),
+        if (provider.isLoading) const LinearProgressIndicator(minHeight: 2),
         Expanded(
           child: RefreshIndicator(
             onRefresh: provider.loadCourses,
             child: ListView.separated(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.only(
-                top: 3,
-                bottom: 25,
-              ),
+              padding: const EdgeInsets.only(top: 3, bottom: 25),
               itemCount: favoriteCourses.length,
-              separatorBuilder: (_, _) =>
-                  const SizedBox(height: 12),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final course = favoriteCourses[index];
 
@@ -299,9 +268,7 @@ class FavoritesPage extends StatelessWidget {
     final favoriteState = context.watch<CourseState>();
 
     final favoriteCourses = provider.courses
-        .where(
-          (course) => favoriteState.isFavorite(course.code),
-        )
+        .where((course) => favoriteState.isFavorite(course.code))
         .toList();
 
     return Scaffold(
@@ -313,14 +280,10 @@ class FavoritesPage extends StatelessWidget {
         elevation: 0,
         title: const Row(
           children: [
-            Icon(
-              Icons.school_rounded,
-              color: primaryColor,
-              size: 25,
-            ),
+            Icon(Icons.favorite_rounded, color: primaryColor, size: 25),
             SizedBox(width: 10),
             Text(
-              'Manajemen Kursus',
+              'Favorit',
               style: TextStyle(
                 color: textColor,
                 fontSize: 18,
@@ -332,13 +295,8 @@ class FavoritesPage extends StatelessWidget {
         actions: [
           IconButton(
             tooltip: 'Muat Ulang Favorit',
-            onPressed: provider.isLoading
-                ? null
-                : provider.loadCourses,
-            icon: const Icon(
-              Icons.refresh_rounded,
-              color: textColor,
-            ),
+            onPressed: provider.isLoading ? null : provider.loadCourses,
+            icon: const Icon(Icons.refresh_rounded, color: textColor),
           ),
           const SizedBox(width: 8),
         ],
@@ -346,14 +304,11 @@ class FavoritesPage extends StatelessWidget {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final horizontalPadding =
-                constraints.maxWidth < 600 ? 17.0 : 28.0;
+            final horizontalPadding = constraints.maxWidth < 600 ? 17.0 : 28.0;
 
             return Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: 1050,
-                ),
+                constraints: const BoxConstraints(maxWidth: 1050),
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
                     horizontalPadding,
@@ -381,10 +336,7 @@ class FavoritesPage extends StatelessWidget {
                       const SizedBox(height: 5),
                       const Text(
                         'Kursus yang telah kamu tambahkan ke favorit.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: mutedColor,
-                        ),
+                        style: TextStyle(fontSize: 12, color: mutedColor),
                       ),
                       const SizedBox(height: 15),
                       Expanded(

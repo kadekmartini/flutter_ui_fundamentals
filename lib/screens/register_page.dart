@@ -13,9 +13,12 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+
+  String _selectedRole = 'student';
 
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
@@ -27,10 +30,19 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  String? _validateName(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Nama lengkap wajib diisi';
+    }
+
+    return null;
   }
 
   String? _validateEmail(String? value) {
@@ -112,6 +124,8 @@ class _RegisterPageState extends State<RegisterPage> {
       final response = await AuthService.instance.register(
         email: _emailController.text.trim(),
         password: _passwordController.text,
+        name: _nameController.text.trim(),
+        role: _selectedRole,
       );
 
       if (!mounted) return;
@@ -127,7 +141,7 @@ class _RegisterPageState extends State<RegisterPage> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            icon: Icon(
+            icon: const Icon(
               Icons.check_circle_outline_rounded,
               color: primaryColor,
               size: 49,
@@ -142,7 +156,7 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
             content: Text(
               hasSession
-                  ? 'Akun berhasil dibuat dan kamu sudah masuk. Silakan lanjutkan ke aplikasi.'
+                  ? 'Akun ${_nameController.text.trim()} berhasil dibuat sebagai ${_selectedRole == 'student' ? 'Mahasiswa' : 'Pengajar'}. Kamu sudah masuk dan dapat melanjutkan ke aplikasi.'
                   : 'Akun berhasil dibuat. Silakan periksa email untuk melakukan konfirmasi jika diminta, kemudian masuk menggunakan akun kamu.',
               textAlign: TextAlign.center,
               style: const TextStyle(
@@ -355,6 +369,54 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
             ),
             const SizedBox(height: 24),
+            TextFormField(
+              controller: _nameController,
+              enabled: !_isLoading,
+              textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.next,
+              decoration: _inputDecoration(
+                label: 'Nama Lengkap',
+                hint: 'Masukkan nama lengkap',
+                icon: Icons.person_outline_rounded,
+              ),
+              validator: _validateName,
+            ),
+            const SizedBox(height: 19),
+            DropdownButtonFormField<String>(
+              initialValue: _selectedRole,
+              decoration: _inputDecoration(
+                label: 'Daftar Sebagai',
+                hint: 'Pilih jenis akun',
+                icon: Icons.badge_outlined,
+              ),
+              items: const [
+                DropdownMenuItem(
+                  value: 'student',
+                  child: Text('Mahasiswa'),
+                ),
+                DropdownMenuItem(
+                  value: 'instructor',
+                  child: Text('Pengajar'),
+                ),
+              ],
+              onChanged: _isLoading
+                  ? null
+                  : (value) {
+                      if (value != null) {
+                        setState(() {
+                          _selectedRole = value;
+                        });
+                      }
+                    },
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Jenis akun wajib dipilih';
+                }
+
+                return null;
+              },
+            ),
+            const SizedBox(height: 19),
             TextFormField(
               controller: _emailController,
               enabled: !_isLoading,
