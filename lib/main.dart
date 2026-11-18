@@ -3,13 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'app_keys.dart';
 import 'config/supabase_config.dart';
 import 'providers/course_state.dart';
 import 'providers/course_provider.dart';
 import 'repositories/course_repository.dart';
 import 'services/course_data_source.dart';
-import 'services/course_supabase_service.dart';
+import 'services/course_api_service.dart';
+import 'services/auth_service.dart';
 import 'screens/login_page.dart';
+import 'screens/responsive_shell.dart';
 
 const String studentName = 'Kadek Martini Aristianti';
 const String studentId = '2415051004';
@@ -36,7 +39,7 @@ Future<void> main() async {
     publishableKey: SupabaseConfig.publishableKey,
   );
 
-  final CourseDataSource dataSource = CourseSupabaseService();
+  final CourseDataSource dataSource = CourseApiService(apiBaseUrl);
   final CourseRepository repository = CourseRepository(dataSource);
 
   runApp(
@@ -62,6 +65,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Course Data Manager',
+      navigatorKey: navigatorKey,
+      scaffoldMessengerKey: messengerKey,
       theme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: Colors.blue,
@@ -80,7 +85,9 @@ class MyApp extends StatelessWidget {
           surfaceTintColor: Colors.transparent,
         ),
       ),
-      home: const LoginPage(),
+      home: AuthService.instance.isLoggedIn
+          ? const ResponsiveShell()
+          : const LoginPage(),
     );
   }
 }

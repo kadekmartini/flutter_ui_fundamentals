@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../providers/course_provider.dart';
 import '../providers/course_state.dart';
 import '../widgets/course_card.dart';
+import '../services/auth_service.dart';
+import 'login_page.dart';
 
 const String studentName = 'Kadek Martini Aristianti';
 const String studentId = '2415051004';
@@ -504,7 +506,8 @@ class HomeTab extends StatelessWidget {
                   const SizedBox(height: 28),
                   _buildSectionHeader(
                     title: 'Kursus Terbaru',
-                    subtitle: 'Lima kursus terbaru dari daftar pembelajaran.',
+                    subtitle:
+                        'Lima kursus terbaru dari daftar pembelajaran.',
                   ),
                   const SizedBox(height: 14),
                   if (courseProvider.isLoading && courses.isEmpty)
@@ -584,6 +587,7 @@ class _ProfileTabState extends State<ProfileTab> {
       TextEditingController();
 
   bool _isLoading = false;
+  bool _isLoggingOut = false;
 
   @override
   void initState() {
@@ -598,6 +602,89 @@ class _ProfileTabState extends State<ProfileTab> {
     _nimController.dispose();
     _commentController.dispose();
     super.dispose();
+  }
+
+  Future<void> _logout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          icon: Icon(
+            Icons.logout_rounded,
+            color: Colors.red.shade600,
+            size: 38,
+          ),
+          title: const Text(
+            'Keluar dari Akun?',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          content: const Text(
+            'Apakah kamu yakin ingin keluar dari aplikasi?',
+            textAlign: TextAlign.center,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.red.shade600,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Ya, Keluar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      _isLoggingOut = true;
+    });
+
+    try {
+      await AuthService.instance.logout();
+
+      if (!mounted) return;
+
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+        MaterialPageRoute<void>(
+          builder: (_) => const LoginPage(),
+        ),
+        (route) => false,
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal keluar dari akun: $error'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoggingOut = false;
+        });
+      }
+    }
   }
 
   Future<void> _submitForm() async {
@@ -702,6 +789,25 @@ class _ProfileTabState extends State<ProfileTab> {
         backgroundColor: HomeTab.backgroundColor,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          IconButton(
+            tooltip: 'Keluar dari Akun',
+            onPressed: _isLoggingOut ? null : _logout,
+            icon: _isLoggingOut
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                    ),
+                  )
+                : Icon(
+                    Icons.logout_rounded,
+                    color: Colors.red.shade600,
+                  ),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -942,6 +1048,73 @@ class _ProfileTabState extends State<ProfileTab> {
                           ),
                         ],
                       ),
+                    ),
+                  ),
+                  const SizedBox(height: 25),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(17),
+                      border: Border.all(
+                        color: const Color(0xFFFFDADA),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Keluar dari Aplikasi',
+                          style: TextStyle(
+                            color: HomeTab.textColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Akhiri sesi login dan kembali ke halaman masuk.',
+                          style: TextStyle(
+                            color: HomeTab.mutedColor,
+                            fontSize: 12,
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 15),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 49,
+                          child: FilledButton.icon(
+                            onPressed:
+                                _isLoggingOut ? null : _logout,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.red.shade600,
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor:
+                                  Colors.red.shade200,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            icon: _isLoggingOut
+                                ? const SizedBox(
+                                    width: 19,
+                                    height: 19,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.logout_rounded),
+                            label: Text(
+                              _isLoggingOut
+                                  ? 'Sedang Keluar...'
+                                  : 'Keluar dari Akun',
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 30),
