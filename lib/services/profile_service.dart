@@ -1,4 +1,3 @@
-
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UserProfile {
@@ -51,5 +50,22 @@ class ProfileService {
     }
 
     return UserProfile.fromMap(data);
+  }
+
+  Future<List<UserProfile>> getAllProfilesForAdmin() async {
+    final currentProfile = await getMyProfile();
+
+    if (currentProfile == null || !currentProfile.isAdmin) {
+      throw Exception(
+        'Hanya Admin yang dapat melihat seluruh profil pengguna.',
+      );
+    }
+
+    final data = await _client
+        .from('profiles')
+        .select('id, email, name, role')
+        .order('name');
+
+    return data.map<UserProfile>((item) => UserProfile.fromMap(item)).toList();
   }
 }

@@ -1,19 +1,17 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../models/course.dart';
 import '../providers/course_provider.dart';
+import '../services/course_ownership_service.dart';
+import '../services/profile_service.dart';
 import 'home_page.dart' show StudentIdentityBanner;
 
 class CourseFormPage extends StatefulWidget {
   final Course? course;
 
-  const CourseFormPage({
-    super.key,
-    this.course,
-  });
+  const CourseFormPage({super.key, this.course});
 
   @override
   State<CourseFormPage> createState() => _CourseFormPageState();
@@ -26,26 +24,31 @@ class _CourseFormPageState extends State<CourseFormPage> {
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
+  final CourseOwnershipService _ownershipService = CourseOwnershipService();
+
   late final TextEditingController _codeController;
   late final TextEditingController _titleController;
   late final TextEditingController _creditsController;
+  late Future<UserProfile?> _profileFuture;
 
   late String _selectedStatus;
   bool _isSubmitting = false;
 
   bool get isEditing => widget.course != null;
 
+  bool _canManageCourses(String role) {
+    return role == 'instructor' || role == 'admin';
+  }
+
   @override
   void initState() {
     super.initState();
 
-    _codeController = TextEditingController(
-      text: widget.course?.code ?? '',
-    );
+    _profileFuture = ProfileService().getMyProfile();
 
-    _titleController = TextEditingController(
-      text: widget.course?.title ?? '',
-    );
+    _codeController = TextEditingController(text: widget.course?.code ?? '');
+
+    _titleController = TextEditingController(text: widget.course?.title ?? '');
 
     _creditsController = TextEditingController(
       text: widget.course?.credits.toString() ?? '',
@@ -84,18 +87,36 @@ class _CourseFormPageState extends State<CourseFormPage> {
     return null;
   }
 
+  void _showMessage(String message, {Color background = Colors.red}) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: background,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate() || _isSubmitting) {
+    if (_isSubmitting) return;
+
+    final profile = await _profileFuture;
+
+    if (!mounted) return;
+
+    if (profile == null || !_canManageCourses(profile.role)) {
+      _showMessage('Kamu tidak memiliki akses untuk mengelola kursus.');
+      return;
+    }
+
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
     if (isEditing && widget.course!.id == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('ID kursus tidak ditemukan.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showMessage('ID kursus tidak ditemukan.');
       return;
     }
 
@@ -115,9 +136,66 @@ class _CourseFormPageState extends State<CourseFormPage> {
 
     try {
       if (isEditing) {
-        await provider.updateCourse(widget.course!.id!, course);
+        final courseId = widget.course!.id!;
+
+        if (profile.role == 'instructor') {
+          final isOwner = await _ownershipService.isOwnedByCurrentUser(
+            courseId,
+          );
+
+          if (!isOwner) {
+            _showMessage(
+              'Akses ditolak. Kamu hanya dapat mengedit kursus milikmu sendiri.',
+            );
+            return;
+          }
+        }
+
+        await provider.updateCourse(courseId, course);
       } else {
-        await provider.createCourse(course);
+        final createdCourse = await provider.createCourse(course);
+
+        if (profile.role == 'instructor') {
+          final createdCourseId = createdCourse.id;
+
+          if (createdCourseId == null) {
+            _showMessage(
+              'Kursus berhasil dikirim, tetapi ID tidak diterima dari REST API. '
+              'Kursus belum tercatat sebagai milikmu. Hubungi admin.',
+            );
+
+            if (mounted) {
+              Navigator.of(context).pop(true);
+            }
+
+            return;
+          }
+
+          try {
+            await _ownershipService.registerOwnership(createdCourseId);
+          } catch (ownershipError) {
+            try {
+              await provider.deleteCourse(createdCourseId);
+            } catch (rollbackError) {
+              _showMessage(
+                'Kursus berhasil dibuat, tetapi pencatatan kepemilikan '
+                'dan pembatalan otomatis gagal. Hubungi admin untuk '
+                'memeriksa kursus ini. Detail: $ownershipError',
+              );
+
+              if (mounted) {
+                Navigator.of(context).pop(true);
+              }
+
+              return;
+            }
+
+            throw Exception(
+              'Pencatatan kepemilikan gagal. Kursus yang baru dibuat '
+              'telah dibatalkan. Detail: $ownershipError',
+            );
+          }
+        }
       }
 
       if (!mounted) return;
@@ -126,16 +204,11 @@ class _CourseFormPageState extends State<CourseFormPage> {
     } catch (error) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            isEditing
-                ? 'Gagal memperbarui kursus: $error'
-                : 'Gagal menambahkan kursus: $error',
-          ),
-          backgroundColor: Colors.red.shade700,
-          behavior: SnackBarBehavior.floating,
-        ),
+      _showMessage(
+        isEditing
+            ? 'Gagal memperbarui kursus: $error'
+            : 'Gagal menambahkan kursus: $error',
+        background: Colors.red.shade700,
       );
     } finally {
       if (mounted) {
@@ -161,10 +234,7 @@ class _CourseFormPageState extends State<CourseFormPage> {
             color: const Color(0xFFEAF3FF),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(
-            icon,
-            color: primaryColor,
-          ),
+          child: Icon(icon, color: primaryColor),
         ),
         const SizedBox(width: 13),
         Expanded(
@@ -182,10 +252,7 @@ class _CourseFormPageState extends State<CourseFormPage> {
               const SizedBox(height: 4),
               Text(
                 subtitle,
-                style: const TextStyle(
-                  color: Color(0xFF718096),
-                  fontSize: 12,
-                ),
+                style: const TextStyle(color: Color(0xFF718096), fontSize: 12),
               ),
             ],
           ),
@@ -202,49 +269,30 @@ class _CourseFormPageState extends State<CourseFormPage> {
     return InputDecoration(
       labelText: label,
       hintText: hint,
-      prefixIcon: Icon(
-        icon,
-        color: primaryColor,
-        size: 21,
-      ),
+      prefixIcon: Icon(icon, color: primaryColor, size: 21),
       filled: true,
       fillColor: const Color(0xFFF8FAFD),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(13),
-        borderSide: const BorderSide(
-          color: Color(0xFFE1E9F2),
-        ),
+        borderSide: const BorderSide(color: Color(0xFFE1E9F2)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(13),
-        borderSide: const BorderSide(
-          color: Color(0xFFE1E9F2),
-        ),
+        borderSide: const BorderSide(color: Color(0xFFE1E9F2)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(13),
-        borderSide: const BorderSide(
-          color: primaryColor,
-          width: 1.5,
-        ),
+        borderSide: const BorderSide(color: primaryColor, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(13),
-        borderSide: const BorderSide(
-          color: Colors.red,
-        ),
+        borderSide: const BorderSide(color: Colors.red),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(13),
-        borderSide: const BorderSide(
-          color: Colors.red,
-          width: 1.5,
-        ),
+        borderSide: const BorderSide(color: Colors.red, width: 1.5),
       ),
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 15,
-        vertical: 17,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 17),
     );
   }
 
@@ -254,9 +302,7 @@ class _CourseFormPageState extends State<CourseFormPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFFE8EEF5),
-        ),
+        border: Border.all(color: const Color(0xFFE8EEF5)),
       ),
       child: Form(
         key: _formKey,
@@ -302,9 +348,7 @@ class _CourseFormPageState extends State<CourseFormPage> {
               controller: _creditsController,
               enabled: !isBusy,
               keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-              ],
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: _inputDecoration(
                 label: 'Jumlah SKS',
                 hint: 'Contoh: 3',
@@ -321,18 +365,9 @@ class _CourseFormPageState extends State<CourseFormPage> {
                 icon: Icons.flag_outlined,
               ),
               items: const [
-                DropdownMenuItem(
-                  value: 'planned',
-                  child: Text('Terencana'),
-                ),
-                DropdownMenuItem(
-                  value: 'active',
-                  child: Text('Berjalan'),
-                ),
-                DropdownMenuItem(
-                  value: 'done',
-                  child: Text('Selesai'),
-                ),
+                DropdownMenuItem(value: 'planned', child: Text('Terencana')),
+                DropdownMenuItem(value: 'active', child: Text('Berjalan')),
+                DropdownMenuItem(value: 'done', child: Text('Selesai')),
               ],
               onChanged: isBusy
                   ? null
@@ -378,11 +413,9 @@ class _CourseFormPageState extends State<CourseFormPage> {
                   isBusy
                       ? 'Menyimpan...'
                       : isEditing
-                          ? 'Simpan Perubahan'
-                          : 'Tambahkan Kursus',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                  ),
+                      ? 'Simpan Perubahan'
+                      : 'Tambahkan Kursus',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
             ),
@@ -392,10 +425,7 @@ class _CourseFormPageState extends State<CourseFormPage> {
                   ? 'Periksa kembali perubahan sebelum menyimpan.'
                   : 'Pastikan seluruh informasi kursus sudah benar.',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Color(0xFF718096),
-                fontSize: 11,
-              ),
+              style: const TextStyle(color: Color(0xFF718096), fontSize: 11),
             ),
           ],
         ),
@@ -403,11 +433,125 @@ class _CourseFormPageState extends State<CourseFormPage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final providerSaving = context.watch<CourseProvider>().isSaving;
-    final isBusy = _isSubmitting || providerSaving;
+  Widget _buildAccessDeniedPage(String role) {
+    return Scaffold(
+      backgroundColor: backgroundColor,
+      appBar: AppBar(
+        backgroundColor: backgroundColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'Akses Ditolak',
+          style: TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+          ),
+        ),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(25),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(22),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFEEEE),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.lock_outline_rounded,
+                  color: Colors.redAccent,
+                  size: 45,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Kamu Tidak Memiliki Akses',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 9),
+              Text(
+                'Role "$role" tidak diizinkan untuk menambah atau mengedit kursus.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xFF718096),
+                  fontSize: 12,
+                  height: 1.6,
+                ),
+              ),
+              const SizedBox(height: 22),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: FilledButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  label: const Text('Kembali'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
+  Widget _buildProfileErrorPage() {
+    return Scaffold(
+      backgroundColor: backgroundColor,
+      appBar: AppBar(
+        backgroundColor: backgroundColor,
+        title: const Text('Form Kursus'),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.cloud_off_outlined,
+                color: Colors.redAccent,
+                size: 42,
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Gagal Memuat Profil Pengguna',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: textColor, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 14),
+              FilledButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _profileFuture = ProfileService().getMyProfile();
+                  });
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Muat Ulang'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAuthorizedPage(bool isBusy) {
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
@@ -438,10 +582,7 @@ class _CourseFormPageState extends State<CourseFormPage> {
                     padding: const EdgeInsets.all(21),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFF1976D2),
-                          Color(0xFF1255A0),
-                        ],
+                        colors: [Color(0xFF1976D2), Color(0xFF1255A0)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -503,6 +644,37 @@ class _CourseFormPageState extends State<CourseFormPage> {
           ),
         ),
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<UserProfile?>(
+      future: _profileFuture,
+      builder: (context, profileSnapshot) {
+        if (profileSnapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            backgroundColor: backgroundColor,
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (profileSnapshot.hasError || profileSnapshot.data == null) {
+          return _buildProfileErrorPage();
+        }
+
+        final profile = profileSnapshot.data!;
+
+        if (!_canManageCourses(profile.role)) {
+          return _buildAccessDeniedPage(profile.role);
+        }
+
+        final providerSaving = context.watch<CourseProvider>().isSaving;
+
+        final isBusy = _isSubmitting || providerSaving;
+
+        return _buildAuthorizedPage(isBusy);
+      },
     );
   }
 }

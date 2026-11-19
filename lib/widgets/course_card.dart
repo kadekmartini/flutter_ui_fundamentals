@@ -1,14 +1,9 @@
-
 import 'package:flutter/material.dart';
 
 import '../models/course.dart';
 import '../screens/course_detail_page.dart';
 
-enum _CourseCardAction {
-  favorite,
-  edit,
-  delete,
-}
+enum _CourseCardAction { edit, delete }
 
 class InteractiveCourseCard extends StatelessWidget {
   const InteractiveCourseCard({
@@ -33,6 +28,7 @@ class InteractiveCourseCard extends StatelessWidget {
   static const Color primaryColor = Color(0xFF1976D2);
   static const Color textColor = Color(0xFF26364A);
   static const Color mutedColor = Color(0xFF718096);
+  static const Color favoriteColor = Color(0xFFE53950);
 
   String get _statusLabel {
     switch (course.status) {
@@ -63,50 +59,40 @@ class InteractiveCourseCard extends StatelessWidget {
     }
 
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => CourseDetailPage(course: course),
-      ),
+      MaterialPageRoute<void>(builder: (_) => CourseDetailPage(course: course)),
     );
   }
 
   void _handleAction(_CourseCardAction action) {
     switch (action) {
-      case _CourseCardAction.favorite:
-        onToggleFavorite?.call();
       case _CourseCardAction.edit:
         onEdit?.call();
+        break;
       case _CourseCardAction.delete:
         onDelete?.call();
+        break;
     }
+  }
+
+  Widget _buildFavoriteButton() {
+    if (!showFavoriteButton || onToggleFavorite == null) {
+      return const SizedBox.shrink();
+    }
+
+    return IconButton(
+      tooltip: isFavorite ? 'Hapus dari Favorit' : 'Tambahkan ke Favorit',
+      onPressed: onToggleFavorite,
+      splashRadius: 23,
+      icon: Icon(
+        isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+        color: favoriteColor,
+        size: 24,
+      ),
+    );
   }
 
   Widget _buildActionMenu() {
     final List<PopupMenuEntry<_CourseCardAction>> items = [];
-
-    if (showFavoriteButton && onToggleFavorite != null) {
-      items.add(
-        PopupMenuItem(
-          value: _CourseCardAction.favorite,
-          child: Row(
-            children: [
-              Icon(
-                isFavorite
-                    ? Icons.favorite_border_rounded
-                    : Icons.favorite_rounded,
-                color: Colors.red.shade600,
-                size: 20,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                isFavorite
-                    ? 'Hapus dari Favorit'
-                    : 'Tambahkan ke Favorit',
-              ),
-            ],
-          ),
-        ),
-      );
-    }
 
     if (onEdit != null) {
       items.add(
@@ -154,24 +140,15 @@ class InteractiveCourseCard extends StatelessWidget {
       onSelected: _handleAction,
       color: Colors.white,
       elevation: 5,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-      ),
-      icon: const Icon(
-        Icons.more_vert_rounded,
-        color: mutedColor,
-        size: 23,
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      icon: const Icon(Icons.more_vert_rounded, color: mutedColor, size: 23),
       itemBuilder: (_) => items,
     );
   }
 
   Widget _buildStatusBadge() {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 9,
-        vertical: 5,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
         color: _statusColor.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(8),
@@ -197,18 +174,12 @@ class InteractiveCourseCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(
-          color: Color(0xFFE8EEF5),
-          width: 1,
-        ),
+        side: const BorderSide(color: Color(0xFFE8EEF5), width: 1),
       ),
       child: InkWell(
         onTap: () => _openDetail(context),
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 14,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           child: Row(
             children: [
               Container(
@@ -280,6 +251,7 @@ class InteractiveCourseCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 4),
+              _buildFavoriteButton(),
               _buildActionMenu(),
             ],
           ),
