@@ -1,27 +1,34 @@
-
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/course.dart';
 import 'course_data_source.dart';
 
 class CourseSupabaseService implements CourseDataSource {
-  final supabase = Supabase.instance.client;
+  final SupabaseClient _client;
+
+  CourseSupabaseService({SupabaseClient? client})
+    : _client = client ?? Supabase.instance.client;
+
+  void _requireAuthenticatedUser() {
+    if (_client.auth.currentUser == null) {
+      throw StateError('Pengguna belum login.');
+    }
+  }
 
   @override
   Future<List<Course>> getCourses() async {
-    final data = await supabase
-        .from('courses')
-        .select()
-        .order('id');
+    _requireAuthenticatedUser();
 
-    return (data as List)
-        .map((e) => Course.fromJson(e as Map<String, dynamic>))
-        .toList();
+    final data = await _client.from('courses').select().order('id');
+
+    return data.map<Course>((row) => Course.fromJson(row)).toList();
   }
 
   @override
   Future<Course> createCourse(Course course) async {
-    final row = await supabase
+    _requireAuthenticatedUser();
+
+    final row = await _client
         .from('courses')
         .insert(course.toJson())
         .select()
@@ -32,17 +39,35 @@ class CourseSupabaseService implements CourseDataSource {
 
   @override
   Future<void> updateCourse(int id, Course course) async {
-    await supabase
+    _requireAuthenticatedUser();
+
+    final rows = await _client
         .from('courses')
         .update(course.toJson())
-        .eq('id', id);
+        .eq('id', id)
+        .select('id');
+
+    if (rows.isEmpty) {
+      throw StateError(
+        'Kursus tidak ditemukan atau perubahan ditolak oleh RLS.',
+      );
+    }
   }
 
   @override
   Future<void> deleteCourse(int id) async {
-    await supabase
+    _requireAuthenticatedUser();
+
+    final rows = await _client
         .from('courses')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .select('id');
+
+    if (rows.isEmpty) {
+      throw StateError(
+        'Kursus tidak ditemukan atau penghapusan ditolak oleh RLS.',
+      );
+    }
   }
 }

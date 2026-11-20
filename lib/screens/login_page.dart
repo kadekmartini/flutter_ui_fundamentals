@@ -1,7 +1,8 @@
-
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../providers/course_provider.dart';
 import '../services/auth_service.dart';
 import 'register_page.dart';
 import 'responsive_shell.dart';
@@ -39,9 +40,7 @@ class _LoginPageState extends State<LoginPage> {
       return 'Email wajib diisi';
     }
 
-    final emailPattern = RegExp(
-      r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
-    );
+    final emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
     if (!emailPattern.hasMatch(email)) {
       return 'Masukkan alamat email yang valid';
@@ -80,6 +79,17 @@ class _LoginPageState extends State<LoginPage> {
     return 'Gagal masuk. Periksa kembali email dan kata sandi kamu.';
   }
 
+  Future<void> _openAuthenticatedShell() async {
+    await context.read<CourseProvider>().loadCourses();
+
+    if (!mounted) return;
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const ResponsiveShell()),
+      (route) => false,
+    );
+  }
+
   Future<void> _login() async {
     if (_isLoading || !_formKey.currentState!.validate()) {
       return;
@@ -105,19 +115,11 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (_) => const ResponsiveShell(),
-        ),
-        (route) => false,
-      );
+      await _openAuthenticatedShell();
     } on AuthException catch (error) {
       if (!mounted) return;
 
-      _showMessage(
-        _authErrorMessage(error.message),
-        isError: true,
-      );
+      _showMessage(_authErrorMessage(error.message), isError: true);
     } catch (error) {
       if (!mounted) return;
 
@@ -135,21 +137,13 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _openRegisterPage() async {
-    final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => const RegisterPage(),
-      ),
-    );
+    final result = await Navigator.of(context)
+        .push<bool>(MaterialPageRoute(builder: (_) => const RegisterPage()));
 
     if (!mounted) return;
 
     if (result == true) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (_) => const ResponsiveShell(),
-        ),
-        (route) => false,
-      );
+      await _openAuthenticatedShell();
     } else if (result == false) {
       _showMessage(
         'Akun berhasil dibuat. Silakan masuk setelah mengonfirmasi email jika diperlukan.',
@@ -157,19 +151,13 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  void _showMessage(
-    String message, {
-    bool isError = false,
-  }) {
+  void _showMessage(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor:
-            isError ? Colors.red.shade700 : primaryColor,
+        backgroundColor: isError ? Colors.red.shade700 : primaryColor,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -183,46 +171,30 @@ class _LoginPageState extends State<LoginPage> {
     return InputDecoration(
       labelText: label,
       hintText: hint,
-      prefixIcon: Icon(
-        icon,
-        color: primaryColor,
-      ),
+      prefixIcon: Icon(icon, color: primaryColor),
       suffixIcon: suffixIcon,
       filled: true,
       fillColor: backgroundColor,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 18,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide.none,
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: Color(0xFFE1E9F2),
-        ),
+        borderSide: const BorderSide(color: Color(0xFFE1E9F2)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: primaryColor,
-          width: 1.5,
-        ),
+        borderSide: const BorderSide(color: primaryColor, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: Colors.red,
-        ),
+        borderSide: const BorderSide(color: Colors.red),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: Colors.red,
-          width: 1.5,
-        ),
+        borderSide: const BorderSide(color: Colors.red, width: 1.5),
       ),
     );
   }
@@ -236,10 +208,7 @@ class _LoginPageState extends State<LoginPage> {
           height: 76,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [
-                Color(0xFF1976D2),
-                Color(0xFF1255A0),
-              ],
+              colors: [Color(0xFF1976D2), Color(0xFF1255A0)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -263,11 +232,7 @@ class _LoginPageState extends State<LoginPage> {
         const SizedBox(height: 9),
         const Text(
           'Masuk ke akun kamu untuk melanjutkan aktivitas pembelajaran dan mengelola kursus.',
-          style: TextStyle(
-            fontSize: 13,
-            height: 1.7,
-            color: Color(0xFF718096),
-          ),
+          style: TextStyle(fontSize: 13, height: 1.7, color: Color(0xFF718096)),
         ),
       ],
     );
@@ -279,9 +244,7 @@ class _LoginPageState extends State<LoginPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: const Color(0xFFE8EEF5),
-        ),
+        border: Border.all(color: const Color(0xFFE8EEF5)),
         boxShadow: [
           BoxShadow(
             color: Colors.blueGrey.withValues(alpha: 0.06),
@@ -334,9 +297,7 @@ class _LoginPageState extends State<LoginPage> {
               controller: _passwordController,
               obscureText: !_isPasswordVisible,
               textInputAction: TextInputAction.done,
-              autofillHints: const [
-                AutofillHints.password,
-              ],
+              autofillHints: const [AutofillHints.password],
               onFieldSubmitted: (_) {
                 _login();
               },
@@ -413,20 +374,14 @@ class _LoginPageState extends State<LoginPage> {
         const Flexible(
           child: Text(
             'Belum memiliki akun?',
-            style: TextStyle(
-              fontSize: 13,
-              color: Color(0xFF718096),
-            ),
+            style: TextStyle(fontSize: 13, color: Color(0xFF718096)),
           ),
         ),
         TextButton(
           onPressed: _isLoading ? null : _openRegisterPage,
           child: const Text(
             'Daftar Sekarang',
-            style: TextStyle(
-              color: primaryColor,
-              fontWeight: FontWeight.w800,
-            ),
+            style: TextStyle(color: primaryColor, fontWeight: FontWeight.w800),
           ),
         ),
       ],
@@ -440,14 +395,9 @@ class _LoginPageState extends State<LoginPage> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 23,
-              vertical: 30,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 23, vertical: 30),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: 460,
-              ),
+              constraints: const BoxConstraints(maxWidth: 460),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

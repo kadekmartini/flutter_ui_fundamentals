@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -9,15 +8,13 @@ import 'providers/course_state.dart';
 import 'providers/course_provider.dart';
 import 'repositories/course_repository.dart';
 import 'services/course_data_source.dart';
-import 'services/course_api_service.dart';
+import 'services/course_supabase_service.dart';
 import 'services/auth_service.dart';
 import 'screens/login_page.dart';
 import 'screens/responsive_shell.dart';
 
 const String studentName = 'Kadek Martini Aristianti';
 const String studentId = '2415051004';
-
-const String apiBaseUrl = 'https://course-api-pearl.vercel.app';
 
 String getStatusText(String status) {
   if (status == 'done') return 'Selesai';
@@ -39,17 +36,23 @@ Future<void> main() async {
     publishableKey: SupabaseConfig.publishableKey,
   );
 
-  final CourseDataSource dataSource = CourseApiService(apiBaseUrl);
+  final CourseDataSource dataSource = CourseSupabaseService();
   final CourseRepository repository = CourseRepository(dataSource);
 
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider<CourseState>(
-          create: (_) => CourseState(),
-        ),
+        ChangeNotifierProvider<CourseState>(create: (_) => CourseState()),
         ChangeNotifierProvider<CourseProvider>(
-          create: (_) => CourseProvider(repository)..loadCourses(),
+          create: (_) {
+            final provider = CourseProvider(repository);
+
+            if (AuthService.instance.isLoggedIn) {
+              provider.loadCourses();
+            }
+
+            return provider;
+          },
         ),
       ],
       child: const MyApp(),
@@ -74,12 +77,8 @@ class MyApp extends StatelessWidget {
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFFF4F8FC),
           foregroundColor: Color(0xFF26364A),
-          iconTheme: IconThemeData(
-            color: Color(0xFF26364A),
-          ),
-          actionsIconTheme: IconThemeData(
-            color: Color(0xFF26364A),
-          ),
+          iconTheme: IconThemeData(color: Color(0xFF26364A)),
+          actionsIconTheme: IconThemeData(color: Color(0xFF26364A)),
           elevation: 0,
           centerTitle: false,
           surfaceTintColor: Colors.transparent,

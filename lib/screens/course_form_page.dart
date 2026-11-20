@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../models/course.dart';
 import '../providers/course_provider.dart';
-import '../services/course_ownership_service.dart';
 import '../services/profile_service.dart';
 import 'home_page.dart' show StudentIdentityBanner;
 
@@ -23,8 +22,6 @@ class _CourseFormPageState extends State<CourseFormPage> {
   static const Color textColor = Color(0xFF26364A);
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
-  final CourseOwnershipService _ownershipService = CourseOwnershipService();
 
   late final TextEditingController _codeController;
   late final TextEditingController _titleController;
@@ -120,6 +117,15 @@ class _CourseFormPageState extends State<CourseFormPage> {
       return;
     }
 
+    if (isEditing &&
+        profile.role == 'instructor' &&
+        !widget.course!.isOwnedBy(profile.id)) {
+      _showMessage(
+        'Akses ditolak. Kamu hanya dapat mengedit kursus milikmu sendiri.',
+      );
+      return;
+    }
+
     setState(() {
       _isSubmitting = true;
     });
@@ -138,64 +144,9 @@ class _CourseFormPageState extends State<CourseFormPage> {
       if (isEditing) {
         final courseId = widget.course!.id!;
 
-        if (profile.role == 'instructor') {
-          final isOwner = await _ownershipService.isOwnedByCurrentUser(
-            courseId,
-          );
-
-          if (!isOwner) {
-            _showMessage(
-              'Akses ditolak. Kamu hanya dapat mengedit kursus milikmu sendiri.',
-            );
-            return;
-          }
-        }
-
         await provider.updateCourse(courseId, course);
       } else {
-        final createdCourse = await provider.createCourse(course);
-
-        if (profile.role == 'instructor') {
-          final createdCourseId = createdCourse.id;
-
-          if (createdCourseId == null) {
-            _showMessage(
-              'Kursus berhasil dikirim, tetapi ID tidak diterima dari REST API. '
-              'Kursus belum tercatat sebagai milikmu. Hubungi admin.',
-            );
-
-            if (mounted) {
-              Navigator.of(context).pop(true);
-            }
-
-            return;
-          }
-
-          try {
-            await _ownershipService.registerOwnership(createdCourseId);
-          } catch (ownershipError) {
-            try {
-              await provider.deleteCourse(createdCourseId);
-            } catch (rollbackError) {
-              _showMessage(
-                'Kursus berhasil dibuat, tetapi pencatatan kepemilikan '
-                'dan pembatalan otomatis gagal. Hubungi admin untuk '
-                'memeriksa kursus ini. Detail: $ownershipError',
-              );
-
-              if (mounted) {
-                Navigator.of(context).pop(true);
-              }
-
-              return;
-            }
-
-            throw Exception(
-              'Pencatatan kepemilikan gagal. Kursus yang baru dibuat '
-              'telah dibatalkan. Detail: $ownershipError',
-            );
-          }
-        }
+        await provider.createCourse(course);
       }
 
       if (!mounted) return;

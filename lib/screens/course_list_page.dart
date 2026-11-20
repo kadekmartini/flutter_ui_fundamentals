@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../models/course.dart';
 import '../providers/course_provider.dart';
 import '../providers/course_state.dart';
-import '../services/course_ownership_service.dart';
 import '../services/profile_service.dart';
 import '../widgets/course_card.dart';
 import '../widgets/error_view.dart';
@@ -29,11 +28,6 @@ class _CourseListPageState extends State<CourseListPage> {
   late Future<UserProfile?> _profileFuture;
 
   final TextEditingController _searchController = TextEditingController();
-  final CourseOwnershipService _ownershipService = CourseOwnershipService();
-
-  Set<int> _ownedCourseIds = {};
-  bool _isLoadingOwnership = true;
-  String? _ownershipError;
 
   String _selectedFilter = 'all';
 
@@ -48,13 +42,13 @@ class _CourseListPageState extends State<CourseListPage> {
     return role == 'instructor' || role == 'admin';
   }
 
-  bool _canManageCourse(String role, Course course) {
+  bool _canManageCourse(String role, String userId, Course course) {
     if (role == 'admin') {
       return true;
     }
 
-    if (role == 'instructor' && course.id != null) {
-      return _ownedCourseIds.contains(course.id);
+    if (role == 'instructor') {
+      return course.isOwnedBy(userId);
     }
 
     return false;
@@ -63,43 +57,13 @@ class _CourseListPageState extends State<CourseListPage> {
   @override
   void initState() {
     super.initState();
-
     _profileFuture = ProfileService().getMyProfile();
-    _loadOwnedCourseIds();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadOwnedCourseIds() async {
-    if (mounted) {
-      setState(() {
-        _isLoadingOwnership = true;
-        _ownershipError = null;
-      });
-    }
-
-    try {
-      final ids = await _ownershipService.getMyOwnedCourseIds();
-
-      if (!mounted) return;
-
-      setState(() {
-        _ownedCourseIds = ids;
-        _isLoadingOwnership = false;
-        _ownershipError = null;
-      });
-    } catch (error) {
-      if (!mounted) return;
-
-      setState(() {
-        _isLoadingOwnership = false;
-        _ownershipError = error.toString();
-      });
-    }
   }
 
   Future<void> _refreshProfile() async {
@@ -110,7 +74,6 @@ class _CourseListPageState extends State<CourseListPage> {
     });
 
     await future;
-    await _loadOwnedCourseIds();
   }
 
   Future<void> _openForm(BuildContext context, {Course? course}) async {
@@ -122,7 +85,6 @@ class _CourseListPageState extends State<CourseListPage> {
 
     final provider = context.read<CourseProvider>();
     await provider.loadCourses();
-    await _loadOwnedCourseIds();
 
     if (!context.mounted) return;
 
@@ -152,7 +114,6 @@ class _CourseListPageState extends State<CourseListPage> {
 
     if (result == true && context.mounted) {
       await context.read<CourseProvider>().loadCourses();
-      await _loadOwnedCourseIds();
     }
   }
 
@@ -160,11 +121,15 @@ class _CourseListPageState extends State<CourseListPage> {
     BuildContext context,
     Course course,
     String role,
+    String userId,
   ) async {
-    if (!_canManageCourses(role)) {
+    if (!_canManageCourse(role, userId, course)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Kamu tidak memiliki akses menghapus kursus.'),
+          content: Text(
+            'Akses ditolak. Kamu hanya dapat menghapus kursus milikmu sendiri.',
+          ),
+          backgroundColor: Colors.red,
         ),
       );
       return;
@@ -178,38 +143,6 @@ class _CourseListPageState extends State<CourseListPage> {
     }
 
     final courseId = course.id!;
-
-    if (role == 'instructor') {
-      try {
-        final isOwner = await _ownershipService.isOwnedByCurrentUser(courseId);
-
-        if (!context.mounted) return;
-
-        if (!isOwner) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Akses ditolak. Kamu hanya dapat menghapus kursus milikmu sendiri.',
-              ),
-              backgroundColor: Colors.red,
-            ),
-          );
-
-          await _loadOwnedCourseIds();
-          return;
-        }
-      } catch (error) {
-        if (!context.mounted) return;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal memeriksa kepemilikan kursus: $error'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-    }
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -256,80 +189,48 @@ class _CourseListPageState extends State<CourseListPage> {
 
     if (confirmed != true || !context.mounted) return;
 
-    if (role == 'instructor') {
-      try {
-        final isOwner = await _ownershipService.isOwnedByCurrentUser(courseId);
+    try {
+      final latestProfile = await ProfileService().getMyProfile();
 
-        if (!context.mounted) return;
+      if (!context.mounted) return;
 
-        if (!isOwner) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Penghapusan dibatalkan karena kursus bukan milikmu.',
-              ),
-              backgroundColor: Colors.red,
-            ),
-          );
-
-          await _loadOwnedCourseIds();
-          return;
-        }
-      } catch (error) {
-        if (!context.mounted) return;
-
+      if (latestProfile == null ||
+          !_canManageCourse(latestProfile.role, latestProfile.id, course)) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal memeriksa kepemilikan kursus: $error'),
+          const SnackBar(
+            content: Text(
+              'Penghapusan ditolak. Kamu bukan pemilik kursus ini.',
+            ),
             backgroundColor: Colors.red,
           ),
         );
         return;
       }
-    }
 
-    final provider = context.read<CourseProvider>();
-    final favoriteState = context.read<CourseState>();
-    final messenger = ScaffoldMessenger.of(context);
+      final provider = context.read<CourseProvider>();
+      final favoriteState = context.read<CourseState>();
+      final messenger = ScaffoldMessenger.of(context);
 
-    try {
       await provider.deleteCourse(courseId);
-
-      String? ownershipWarning;
-
-      if (role == 'instructor' || role == 'admin') {
-        try {
-          await _ownershipService.removeOwnership(courseId);
-        } catch (error) {
-          ownershipWarning = error.toString();
-        }
-      }
 
       if (favoriteState.isFavorite(course.code)) {
         favoriteState.toggleFavorite(course.code);
       }
 
       await provider.loadCourses();
-      await _loadOwnedCourseIds();
 
       if (!context.mounted) return;
 
       final refreshFailed = provider.error != null;
 
-      String message;
-
-      if (ownershipWarning != null) {
-        message = 'Kursus berhasil dihapus dari REST API, tetapi catatan kepemilikannya gagal dihapus.';
-      } else if (refreshFailed) {
-        message = 'Kursus dihapus, tetapi daftar gagal dimuat ulang.';
-      } else {
-        message = 'Kursus ${course.code} berhasil dihapus.';
-      }
-
       messenger.showSnackBar(
         SnackBar(
-          content: Text(message),
-          backgroundColor: ownershipWarning != null || refreshFailed
+          content: Text(
+            refreshFailed
+                ? 'Kursus dihapus, tetapi daftar gagal dimuat ulang.'
+                : 'Kursus ${course.code} berhasil dihapus.',
+          ),
+          backgroundColor: refreshFailed
               ? Colors.orange.shade700
               : Colors.green.shade700,
           behavior: SnackBarBehavior.floating,
@@ -338,7 +239,7 @@ class _CourseListPageState extends State<CourseListPage> {
     } catch (error) {
       if (!context.mounted) return;
 
-      messenger.showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Gagal menghapus kursus: $error'),
           backgroundColor: Colors.red.shade700,
@@ -821,19 +722,9 @@ class _CourseListPageState extends State<CourseListPage> {
     CourseState favoriteState,
     List<Course> courses,
     String role,
+    String userId,
     bool canManageCourses,
   ) {
-    if (role == 'instructor' && _isLoadingOwnership) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (role == 'instructor' && _ownershipError != null) {
-      return ErrorView(
-        message: 'Gagal memuat kepemilikan kursus: $_ownershipError',
-        onRetry: _loadOwnedCourseIds,
-      );
-    }
-
     if (provider.isLoading && provider.courses.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -882,7 +773,11 @@ class _CourseListPageState extends State<CourseListPage> {
               separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final course = courses[index];
-                final canManageThisCourse = _canManageCourse(role, course);
+                final canManageThisCourse = _canManageCourse(
+                  role,
+                  userId,
+                  course,
+                );
 
                 return InteractiveCourseCard(
                   course: course,
@@ -896,7 +791,7 @@ class _CourseListPageState extends State<CourseListPage> {
                       ? () => _openForm(context, course: course)
                       : null,
                   onDelete: canManageThisCourse
-                      ? () => _deleteCourse(context, course, role)
+                      ? () => _deleteCourse(context, course, role, userId)
                       : null,
                 );
               },
@@ -976,6 +871,7 @@ class _CourseListPageState extends State<CourseListPage> {
 
         final profile = profileSnapshot.data!;
         final role = profile.role;
+        final userId = profile.id;
         final canManageCourses = _canManageCourses(role);
 
         final provider = context.watch<CourseProvider>();
@@ -1090,6 +986,7 @@ class _CourseListPageState extends State<CourseListPage> {
                               favoriteState,
                               filteredCourses,
                               role,
+                              userId,
                               canManageCourses,
                             ),
                           ),

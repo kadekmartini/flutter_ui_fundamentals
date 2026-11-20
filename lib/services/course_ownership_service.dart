@@ -49,9 +49,27 @@ class CourseOwnershipService {
     });
   }
 
-  Future<void> removeOwnership(int courseId) async {
+  Future<bool> updateOwnershipTimestamp(int courseId) async {
     _requireUserId();
 
-    await _client.from('course_ownership').delete().eq('course_id', courseId);
+    final rows = await _client
+        .from('course_ownership')
+        .update({'updated_at': DateTime.now().toUtc().toIso8601String()})
+        .eq('course_id', courseId)
+        .select('course_id');
+
+    return rows.isNotEmpty;
+  }
+
+  Future<bool> removeOwnership(int courseId) async {
+    _requireUserId();
+
+    final rows = await _client
+        .from('course_ownership')
+        .delete()
+        .eq('course_id', courseId)
+        .select('course_id');
+
+    return rows.isNotEmpty;
   }
 }

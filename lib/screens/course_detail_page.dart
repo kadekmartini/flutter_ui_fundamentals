@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../models/course.dart';
 import '../providers/course_provider.dart';
 import '../providers/course_state.dart';
-import '../services/course_ownership_service.dart';
 import '../services/profile_service.dart';
 import 'course_form_page.dart';
 import 'home_page.dart' show StudentIdentityBanner;
@@ -26,8 +25,6 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
   static const Color textColor = Color(0xFF26364A);
   static const Color mutedColor = Color(0xFF718096);
   static const Color favoriteColor = Color(0xFFE53950);
-
-  final CourseOwnershipService _ownershipService = CourseOwnershipService();
 
   late Course _course;
   late Future<UserProfile?> _profileFuture;
@@ -55,8 +52,8 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
       return true;
     }
 
-    if (profile.role == 'instructor' && _course.id != null) {
-      return _ownershipService.isOwnedByCurrentUser(_course.id!);
+    if (profile.role == 'instructor') {
+      return _course.isOwnedBy(profile.id);
     }
 
     return false;
@@ -73,8 +70,8 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
       return true;
     }
 
-    if (profile.role == 'instructor' && _course.id != null) {
-      return _ownershipService.isOwnedByCurrentUser(_course.id!);
+    if (profile.role == 'instructor') {
+      return _course.isOwnedBy(profile.id);
     }
 
     return false;
@@ -307,14 +304,6 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
     try {
       await provider.deleteCourse(courseId);
 
-      String? ownershipWarning;
-
-      try {
-        await _ownershipService.removeOwnership(courseId);
-      } catch (error) {
-        ownershipWarning = error.toString();
-      }
-
       if (favoriteState.isFavorite(_course.code)) {
         favoriteState.toggleFavorite(_course.code);
       }
@@ -325,9 +314,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
 
       final refreshFailed = provider.error != null;
 
-      final message = ownershipWarning != null
-          ? 'Kursus berhasil dihapus, tetapi catatan kepemilikannya gagal dihapus.'
-          : refreshFailed
+      final message = refreshFailed
           ? 'Kursus dihapus, tetapi daftar gagal dimuat ulang.'
           : 'Kursus ${_course.code} berhasil dihapus.';
 
@@ -336,7 +323,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(message),
-          backgroundColor: ownershipWarning != null || refreshFailed
+          backgroundColor: refreshFailed
               ? Colors.orange.shade700
               : Colors.green.shade700,
           behavior: SnackBarBehavior.floating,

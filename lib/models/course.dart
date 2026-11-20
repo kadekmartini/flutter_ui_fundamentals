@@ -1,9 +1,6 @@
-// Nama: Kadek Martini Aristianti
-// NIM: 2415051004
-// TAHAP 6: Model Course dan JSON Mapping
-
 class Course {
   final int? id;
+  final String? ownerId;
   final String code;
   final String title;
   final int credits;
@@ -11,6 +8,7 @@ class Course {
 
   const Course({
     this.id,
+    this.ownerId,
     required this.code,
     required this.title,
     required this.credits,
@@ -18,21 +16,24 @@ class Course {
   });
 
   factory Course.fromJson(Map<String, dynamic> json) {
+    final idValue = json['id'];
+    final creditsValue = json['credits'];
+
     return Course(
-      id: json['id'] as int?,
-      code: json['code'] as String,
-      title: json['title'] as String,
-      credits: json['credits'] as int,
-      status: (json['status'] as String?) ?? 'planned',
+      id: idValue is num ? idValue.toInt() : null,
+      ownerId: json['owner_id']?.toString(),
+      code: json['code']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      credits: creditsValue is num ? creditsValue.toInt() : 0,
+      status: json['status']?.toString() ?? 'planned',
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'code': code,
-      'title': title,
-      'credits': credits,
-      'status': status,
-    };
+    return {'code': code, 'title': title, 'credits': credits, 'status': status};
+  }
+
+  bool isOwnedBy(String userId) {
+    return ownerId == userId;
   }
 }

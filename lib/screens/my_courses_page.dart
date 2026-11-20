@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/course.dart';
 import '../providers/course_provider.dart';
 import '../providers/course_state.dart';
-import '../services/course_ownership_service.dart';
+import '../services/profile_service.dart';
 import '../widgets/course_card.dart';
 import '../widgets/error_view.dart';
 import 'course_detail_page.dart';
@@ -23,16 +23,22 @@ class _MyCoursesPageState extends State<MyCoursesPage> {
   static const Color textColor = Color(0xFF26364A);
   static const Color mutedColor = Color(0xFF718096);
 
-  final CourseOwnershipService _ownershipService = CourseOwnershipService();
-
-  late Future<Set<int>> _ownedCourseIdsFuture;
+  late Future<UserProfile?> _profileFuture;
 
   bool _isProcessing = false;
+
+  bool _canManageCourses(String role) {
+    return role == 'instructor' || role == 'admin';
+  }
+
+  bool _isOwnedByCurrentUser(Course course, UserProfile profile) {
+    return _canManageCourses(profile.role) && course.isOwnedBy(profile.id);
+  }
 
   @override
   void initState() {
     super.initState();
-    _ownedCourseIdsFuture = _ownershipService.getMyOwnedCourseIds();
+    _profileFuture = ProfileService().getMyProfile();
   }
 
   void _showMessage(String message, {Color? backgroundColor}) {
@@ -47,22 +53,20 @@ class _MyCoursesPageState extends State<MyCoursesPage> {
     );
   }
 
-  Future<void> _refresh() async {
-    final provider = context.read<CourseProvider>();
-
-    await provider.loadCourses();
-
-    if (!mounted) return;
-
-    final future = _ownershipService.getMyOwnedCourseIds();
+  Future<void> _refreshProfile() async {
+    final future = ProfileService().getMyProfile();
 
     setState(() {
-      _ownedCourseIdsFuture = future;
+      _profileFuture = future;
     });
 
     try {
       await future;
     } catch (_) {}
+  }
+
+  Future<void> _refresh() async {
+    await context.read<CourseProvider>().loadCourses();
   }
 
   Future<void> _openAddForm() async {
@@ -90,16 +94,12 @@ class _MyCoursesPageState extends State<MyCoursesPage> {
     );
   }
 
-  Future<bool> _checkOwnership(int courseId) async {
-    try {
-      return await _ownershipService.isOwnedByCurrentUser(courseId);
-    } catch (error) {
-      _showMessage(
-        'Gagal memeriksa kepemilikan kursus: $error',
-        backgroundColor: Colors.red.shade700,
-      );
-      return false;
-    }
+  Future<bool> _checkOwnership(Course course) async {
+    final profile = await ProfileService().getMyProfile();
+
+    if (profile == null) return false;
+
+    return _isOwnedByCurrentUser(course, profile);
   }
 
   Future<void> _openEditForm(Course course) async {
@@ -113,18 +113,30 @@ class _MyCoursesPageState extends State<MyCoursesPage> {
       return;
     }
 
-    final isOwner = await _checkOwnership(course.id!);
+    try {
+      final isOwner = await _checkOwnership(course);
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (!isOwner) {
+      if (!isOwner) {
+        _showMessage(
+          'Kamu hanya dapat mengedit kursus milikmu sendiri.',
+          backgroundColor: Colors.red.shade700,
+        );
+        await _refresh();
+        return;
+      }
+    } catch (error) {
+      if (!mounted) return;
+
       _showMessage(
-        'Kamu hanya dapat mengedit kursus milikmu sendiri.',
+        'Gagal memeriksa kepemilikan kursus: $error',
         backgroundColor: Colors.red.shade700,
       );
-      await _refresh();
       return;
     }
+
+    if (!mounted) return;
 
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(builder: (_) => CourseFormPage(course: course)),
@@ -161,16 +173,26 @@ class _MyCoursesPageState extends State<MyCoursesPage> {
 
     final courseId = course.id!;
 
-    final isOwner = await _checkOwnership(courseId);
+    try {
+      final isOwner = await _checkOwnership(course);
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (!isOwner) {
+      if (!isOwner) {
+        _showMessage(
+          'Kamu hanya dapat menghapus kursus milikmu sendiri.',
+          backgroundColor: Colors.red.shade700,
+        );
+        await _refresh();
+        return;
+      }
+    } catch (error) {
+      if (!mounted) return;
+
       _showMessage(
-        'Kamu hanya dapat menghapus kursus milikmu sendiri.',
+        'Gagal memeriksa kepemilikan kursus: $error',
         backgroundColor: Colors.red.shade700,
       );
-      await _refresh();
       return;
     }
 
@@ -227,23 +249,13 @@ class _MyCoursesPageState extends State<MyCoursesPage> {
     final favoriteState = context.read<CourseState>();
 
     try {
-      final ownershipConfirmed = await _ownershipService.isOwnedByCurrentUser(
-        courseId,
-      );
+      final isOwner = await _checkOwnership(course);
 
-      if (!ownershipConfirmed) {
-        throw Exception('Kursus bukan milik akun yang sedang login.');
+      if (!isOwner) {
+        throw StateError('Kursus bukan milik akun yang sedang login.');
       }
 
       await provider.deleteCourse(courseId);
-
-      String? ownershipError;
-
-      try {
-        await _ownershipService.removeOwnership(courseId);
-      } catch (error) {
-        ownershipError = error.toString();
-      }
 
       if (favoriteState.isFavorite(course.code)) {
         favoriteState.toggleFavorite(course.code);
@@ -253,19 +265,14 @@ class _MyCoursesPageState extends State<MyCoursesPage> {
 
       if (!mounted) return;
 
-      if (ownershipError != null) {
-        _showMessage(
-          'Kursus berhasil dihapus, tetapi catatan kepemilikan gagal dihapus.',
-          backgroundColor: Colors.orange.shade700,
-        );
-      } else if (provider.error != null) {
-        _showMessage(
-          'Kursus dihapus, tetapi daftar gagal dimuat ulang.',
-          backgroundColor: Colors.orange.shade700,
-        );
-      } else {
-        _showMessage('Kursus ${course.code} berhasil dihapus.');
-      }
+      _showMessage(
+        provider.error == null
+            ? 'Kursus ${course.code} berhasil dihapus.'
+            : 'Kursus dihapus, tetapi daftar gagal dimuat ulang.',
+        backgroundColor: provider.error == null
+            ? Colors.green.shade700
+            : Colors.orange.shade700,
+      );
     } catch (error) {
       if (!mounted) return;
 
@@ -314,7 +321,7 @@ class _MyCoursesPageState extends State<MyCoursesPage> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool canManage) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 450;
@@ -337,6 +344,10 @@ class _MyCoursesPageState extends State<MyCoursesPage> {
             ),
           ],
         );
+
+        if (!canManage) {
+          return titleSection;
+        }
 
         if (compact) {
           return Column(
@@ -410,7 +421,7 @@ class _MyCoursesPageState extends State<MyCoursesPage> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(bool canManage) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(25),
@@ -440,13 +451,18 @@ class _MyCoursesPageState extends State<MyCoursesPage> {
               ),
             ),
             const SizedBox(height: 7),
-            const Text(
-              'Kursus yang kamu tambahkan akan muncul di halaman ini.',
+            Text(
+              canManage
+                  ? 'Kursus yang kamu tambahkan akan muncul di halaman ini.'
+                  : 'Belum ada kursus yang tercatat sebagai milikmu.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: mutedColor, fontSize: 12, height: 1.5),
+              style: const TextStyle(
+                color: mutedColor,
+                fontSize: 12,
+                height: 1.5,
+              ),
             ),
-            const SizedBox(height: 18),
-            _buildAddButton(),
+            if (canManage) ...[const SizedBox(height: 18), _buildAddButton()],
           ],
         ),
       ),
@@ -491,110 +507,154 @@ class _MyCoursesPageState extends State<MyCoursesPage> {
     );
   }
 
+  Widget _buildProfileError() {
+    return Scaffold(
+      backgroundColor: backgroundColor,
+      appBar: AppBar(
+        backgroundColor: backgroundColor,
+        title: const Text('Kursus Saya'),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.cloud_off_outlined,
+                color: Colors.redAccent,
+                size: 42,
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Gagal Memuat Profil Pengguna',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: textColor, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 14),
+              FilledButton.icon(
+                onPressed: _refreshProfile,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Coba Lagi'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<CourseProvider>();
     final favoriteState = context.watch<CourseState>();
 
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      appBar: AppBar(
-        backgroundColor: backgroundColor,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: const Row(
-          children: [
-            Icon(Icons.folder_special_rounded, color: primaryColor, size: 25),
-            SizedBox(width: 10),
-            Text(
-              'Kursus Saya',
-              style: TextStyle(
-                color: textColor,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
+    return FutureBuilder<UserProfile?>(
+      future: _profileFuture,
+      builder: (context, profileSnapshot) {
+        if (profileSnapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            backgroundColor: backgroundColor,
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (profileSnapshot.hasError || profileSnapshot.data == null) {
+          return _buildProfileError();
+        }
+
+        final profile = profileSnapshot.data!;
+        final canManage = _canManageCourses(profile.role);
+
+        final myCourses = provider.courses
+            .where((course) => course.isOwnedBy(profile.id))
+            .toList();
+
+        if (provider.isLoading && provider.courses.isEmpty) {
+          return const Scaffold(
+            backgroundColor: backgroundColor,
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (provider.error != null && provider.courses.isEmpty) {
+          return Scaffold(
+            backgroundColor: backgroundColor,
+            body: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: ErrorView(message: provider.error!, onRetry: _refresh),
               ),
             ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Muat Ulang',
-            onPressed: provider.isLoading || _isProcessing ? null : _refresh,
-            icon: const Icon(Icons.refresh_rounded, color: textColor),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final horizontalPadding = constraints.maxWidth < 600 ? 17.0 : 28.0;
+          );
+        }
 
-            return Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1050),
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    horizontalPadding,
-                    16,
-                    horizontalPadding,
-                    12,
+        return Scaffold(
+          backgroundColor: backgroundColor,
+          appBar: AppBar(
+            backgroundColor: backgroundColor,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            automaticallyImplyLeading: false,
+            title: const Row(
+              children: [
+                Icon(
+                  Icons.folder_special_rounded,
+                  color: primaryColor,
+                  size: 25,
+                ),
+                SizedBox(width: 10),
+                Text(
+                  'Kursus Saya',
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeader(),
-                      const SizedBox(height: 18),
-                      Expanded(
-                        child: FutureBuilder<Set<int>>(
-                          future: _ownedCourseIdsFuture,
-                          builder: (context, ownershipSnapshot) {
-                            if (ownershipSnapshot.connectionState !=
-                                ConnectionState.done) {
-                              return const Center(
-                                child: CircularProgressIndicator(),
-                              );
-                            }
+                ),
+              ],
+            ),
+            actions: [
+              IconButton(
+                tooltip: 'Muat Ulang',
+                onPressed: provider.isLoading || _isProcessing
+                    ? null
+                    : _refresh,
+                icon: const Icon(Icons.refresh_rounded, color: textColor),
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
+          body: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final horizontalPadding = constraints.maxWidth < 600
+                    ? 17.0
+                    : 28.0;
 
-                            if (ownershipSnapshot.hasError) {
-                              return ErrorView(
-                                message:
-                                    'Gagal memuat kepemilikan kursus: ${ownershipSnapshot.error}',
-                                onRetry: _refresh,
-                              );
-                            }
-
-                            if (provider.isLoading &&
-                                provider.courses.isEmpty) {
-                              return const Center(
-                                child: CircularProgressIndicator(),
-                              );
-                            }
-
-                            if (provider.error != null &&
-                                provider.courses.isEmpty) {
-                              return ErrorView(
-                                message: provider.error!,
-                                onRetry: _refresh,
-                              );
-                            }
-
-                            final ownedIds = ownershipSnapshot.data!;
-
-                            final myCourses = provider.courses.where((course) {
-                              return course.id != null &&
-                                  ownedIds.contains(course.id);
-                            }).toList();
-
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1050),
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        horizontalPadding,
+                        16,
+                        horizontalPadding,
+                        12,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildHeader(canManage),
+                          const SizedBox(height: 18),
+                          Expanded(
+                            child: Column(
                               children: [
                                 _buildSummary(myCourses.length),
                                 const SizedBox(height: 18),
                                 Expanded(
                                   child: myCourses.isEmpty
-                                      ? _buildEmptyState()
+                                      ? _buildEmptyState(canManage)
                                       : _buildCourseList(
                                           myCourses,
                                           provider,
@@ -602,18 +662,18 @@ class _MyCoursesPageState extends State<MyCoursesPage> {
                                         ),
                                 ),
                               ],
-                            );
-                          },
-                        ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }
