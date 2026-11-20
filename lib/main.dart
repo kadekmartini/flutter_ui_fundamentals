@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'firebase_options.dart';
@@ -12,6 +14,7 @@ import 'repositories/course_repository.dart';
 import 'services/course_data_source.dart';
 import 'services/course_supabase_service.dart';
 import 'services/auth_service.dart';
+import 'services/notification_service.dart';
 import 'screens/login_page.dart';
 import 'screens/responsive_shell.dart';
 
@@ -34,6 +37,10 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  if (!kIsWeb) {
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  }
 
   await Supabase.initialize(
     url: SupabaseConfig.url,

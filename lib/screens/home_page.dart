@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../services/notification_service.dart';
 import '../providers/course_provider.dart';
 import '../providers/course_state.dart';
 import '../services/auth_service.dart';
@@ -568,6 +569,7 @@ class _ProfileTabState extends State<ProfileTab> {
     _nameController = TextEditingController(text: studentName);
     _nimController = TextEditingController(text: studentId);
     _profileFuture = ProfileService().getMyProfile();
+    NotificationService.instance.init();
   }
 
   @override
